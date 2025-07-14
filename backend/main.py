@@ -55,26 +55,52 @@ async def analyze_review(request: ReviewRequest):
 
 @app.post("/verify-image")
 async def verify_image(image: UploadFile = File(...)):
+    import base64
+    import requests
     try:
         contents = await image.read()
-        img = Image.open(io.BytesIO(contents)).convert('RGB')
-        model_name = "prithivMLmods/open-deepfake-detection"
-        processor = AutoImageProcessor.from_pretrained(model_name)
-        model = AutoModelForImageClassification.from_pretrained(model_name)
-        model.eval()
-        inputs = processor(images=img, return_tensors="pt")
-        with torch.no_grad():
-            outputs = model(**inputs)
-            logits = outputs.logits
-            probs = torch.softmax(logits, dim=1).squeeze()
-            is_ai = bool(torch.argmax(probs).item())
-            confidence = float(probs[1].item()) if is_ai else float(probs[0].item())
-        message = "AI-generated image detected." if is_ai else "Image appears original/authentic."
-        return {
-            "is_ai_generated": is_ai,
-            "confidence": confidence,
-            "message": message
+        image_b64 = base64.b64encode(contents).decode('utf-8')
+        mime_type = image.content_type or 'image/jpeg'
+        GEMINI_API_KEY = "AIzaSyDU1V_wc4UlwbJwm8oTKBGqShws2vR4ISU"
+        GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+        prompt = {"text": 'Is this image AI-generated or real? Respond in this JSON format: {"label": "AI-generated" or "Real", "confidence": 0-100, "reason": "..."}'}
+        payload = {
+            "contents": [{
+                "parts": [
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": image_b64
+                        }
+                    },
+                    prompt
+                ]
+            }]
         }
+        headers = {
+            "x-goog-api-key": GEMINI_API_KEY,
+            "Content-Type": "application/json"
+        }
+        response = requests.post(GEMINI_URL, json=payload, headers=headers, timeout=30)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail=f"Gemini API error: {response.text}")
+        gemini_data = response.json()
+        try:
+            text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
+            import re
+            import json as pyjson
+            match = re.search(r'\{.*\}', text, re.DOTALL)
+            if match:
+                result = pyjson.loads(match.group(0))
+                return {
+                    "label": result.get("label"),
+                    "confidence": result.get("confidence"),
+                    "reason": result.get("reason")
+                }
+            else:
+                return {"message": "Could not parse Gemini response", "raw_response": text}
+        except Exception:
+            return {"message": "Could not parse Gemini response", "raw_response": gemini_data}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Image verification failed: {str(e)}")
 

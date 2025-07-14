@@ -20,6 +20,8 @@ export function TrustChecker({ onNavigate }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageVerification, setImageVerification] = useState(null);
   const [isVerifyingImage, setIsVerifyingImage] = useState(false);
+  const [isAnalyzingProductLink, setIsAnalyzingProductLink] = useState(false);
+  const [productLinkResult, setProductLinkResult] = useState(null);
 
   // Check backend status on component mount
   useEffect(() => {
@@ -72,6 +74,23 @@ export function TrustChecker({ onNavigate }) {
     }
   };
 
+  const handleAnalyzeProductLink = async () => {
+    if (!productUrl.trim()) return;
+    setIsAnalyzingProductLink(true);
+    setError(null);
+    setProductLinkResult(null);
+    try {
+      const result = await apiService.analyzeProductLink(productUrl.trim());
+      setProductLinkResult(result);
+      setShowResults(false); // Only show product link results
+    } catch (err) {
+      setError(err.message || 'Failed to analyze product link.');
+      setProductLinkResult(null);
+    } finally {
+      setIsAnalyzingProductLink(false);
+    }
+  };
+
   const handleNewAnalysis = () => {
     setShowResults(false);
     setAnalysisResult(null);
@@ -81,6 +100,7 @@ export function TrustChecker({ onNavigate }) {
     setProductUrl('');
     setSelectedImage(null);
     setImageVerification(null);
+    setProductLinkResult(null);
   };
 
   const handleImageUpload = (file) => {
@@ -125,7 +145,7 @@ export function TrustChecker({ onNavigate }) {
       )}
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {(!showResults && !imageVerification) ? (
+        {(!showResults && !imageVerification && !productLinkResult) ? (
           <InputSection
             productUrl={productUrl}
             setProductUrl={setProductUrl}
@@ -143,6 +163,8 @@ export function TrustChecker({ onNavigate }) {
             selectedImage={selectedImage}
             onAnalyzeImage={handleAnalyzeImage}
             isVerifyingImage={isVerifyingImage}
+            onAnalyzeProductLink={handleAnalyzeProductLink}
+            isAnalyzingProductLink={isAnalyzingProductLink}
           />
         ) : (
           <ResultsSection 
@@ -151,6 +173,7 @@ export function TrustChecker({ onNavigate }) {
             imageVerification={imageVerification}
             selectedImage={selectedImage}
             isVerifyingImage={isVerifyingImage}
+            productLinkResult={productLinkResult}
             showBackButton={true}
           />
         )}

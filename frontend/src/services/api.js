@@ -79,6 +79,24 @@ class ApiService {
       throw error;
     }
   }
+
+  async analyzeProductLink(productUrl) {
+    try {
+      const response = await fetch(`${this.baseURL}/analyze-product-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_url: productUrl })
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to analyze product link');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();
