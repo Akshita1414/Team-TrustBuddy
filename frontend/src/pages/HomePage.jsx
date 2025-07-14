@@ -1,11 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Shield, CheckCircle, Upload, Globe } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { Header } from '../components/Header';
 import { FeatureCard } from '../components/FeatureCard';
+import { useNavigate } from 'react-router-dom';
 
-export function HomePage({ onNavigate }) {
+export function HomePage() {
   const { t } = useLanguage();
+  const [username, setUsername] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setUsername(localStorage.getItem('username'));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('username');
+    setUsername(null);
+    window.location.reload();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
@@ -23,7 +36,7 @@ export function HomePage({ onNavigate }) {
             </p>
 
             <button
-              onClick={() => onNavigate('checker')}
+              onClick={() => navigate('/checker')}
               className="group bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xl font-semibold px-12 py-4 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 inline-flex items-center space-x-3"
             >
               <Shield className="w-6 h-6" />
@@ -57,6 +70,16 @@ export function HomePage({ onNavigate }) {
           />
         </div>
       </main>
+      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+        {username ? (
+          <>
+            <span>Welcome, {username}! </span>
+            <button onClick={handleLogout}>Logout</button>
+          </>
+        ) : (
+          <a href="/login">Login</a>
+        )}
+      </div>
     </div>
   );
 }

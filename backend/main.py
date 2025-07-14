@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from models.review import ReviewRequest, ReviewResponse
@@ -10,6 +10,15 @@ from PIL import Image
 import base64
 import re
 import json as pyjson
+from pymongo import MongoClient
+from models.user import UserSignup, UserLogin
+from typing import Optional
+
+# MongoDB Atlas connection
+MONGO_URL = "REMOVED"
+client = MongoClient(MONGO_URL)
+db = client["trustbuddy"]
+users_collection = db["users"]
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -21,7 +30,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly for production
+    allow_origins=["http://localhost:3000"],  # Only allow frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,8 +39,21 @@ app.add_middleware(
 # Initialize the detector
 detector = FakeReviewDetector()
 
+# Helper to get user by username
+
+def get_user(username: str):
+    return users_collection.find_one({"username": username})
+
+@app.get("/user/history")
+def get_history(username: str):
+    user = get_user(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return {"history": user.get("history", [])}
+
+# Update analyze_review to save to user history if username is provided
 @app.post("/analyze-review", response_model=ReviewResponse)
-async def analyze_review(request: ReviewRequest):
+async def analyze_review(request: ReviewRequest, username: Optional[str] = None):
     """
     Analyze a review for authenticity and return confidence score with visual badge
     
@@ -49,6 +71,12 @@ async def analyze_review(request: ReviewRequest):
     
     try:
         result = detector.analyze_review(request)
+        # Save to user history if username is provided
+        if username:
+            users_collection.update_one(
+                {"username": username},
+                {"$push": {"history": {"review": request.review_text, "result": result.dict()}}}
+            )
         return result
     except Exception as e:
         raise HTTPException(
@@ -330,6 +358,20 @@ async def analyze_product_name(payload: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Product name is too short or empty.")
     result = detector.analyze_product_name(product_name, language)
     return result
+
+@app.post("/signup")
+def signup(user: UserSignup):
+    if users_collection.find_one({"username": user.username}):
+        raise HTTPException(status_code=400, detail="Username already exists.")
+    users_collection.insert_one({"username": user.username, "password": user.password, "history": []})
+    return {"message": "Signup successful."}
+
+@app.post("/login")
+def login(user: UserLogin):
+    db_user = users_collection.find_one({"username": user.username, "password": user.password})
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    return {"message": "Login successful.", "username": user.username}
 
 @app.get("/health")
 async def health_check():

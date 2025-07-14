@@ -1,11 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
+import { Pie, Line } from 'react-chartjs-2';
 import { useLanguage } from '../context/LanguageContext';
 import { Header } from '../components/Header';
 import { ResultsSection } from '../components/ResultsSection';
 import { TabbedInterface } from '../components/TabbedInterface';
+import { AnalysisSection } from '../components/AnalysisSection';
 import { Link, MessageSquare, Image as ImageIcon, Tag, Mic } from 'lucide-react';
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
-export function TrustChecker({ onNavigate }) {
+export function TrustChecker() {
   const { t, language } = useLanguage();
 
   // Product Link Tab
@@ -37,9 +41,59 @@ export function TrustChecker({ onNavigate }) {
   const [voiceError, setVoiceError] = useState(null);
   const recognitionRef = useRef(null);
 
+  const [username, setUsername] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    const user = localStorage.getItem('username');
+    setUsername(user);
+    if (user) {
+      fetch(`http://localhost:8000/user/history?username=${user}`)
+        .then(res => res.json())
+        .then(data => setHistory(data.history || []));
+    }
+  }, []);
+
+  // Prepare analytics data
+  const riskCounts = { SAFE: 0, WARNING: 0, RISKY: 0 };
+  const confidenceScores = [];
+  const labels = [];
+  history.forEach((item, idx) => {
+    const risk = item.result?.risk_level || 'SAFE';
+    if (riskCounts[risk] !== undefined) riskCounts[risk]++;
+    confidenceScores.push(item.result?.confidence_score || 0);
+    labels.push(`Review ${idx + 1}`);
+  });
+
+  const pieData = {
+    labels: ['SAFE', 'WARNING', 'RISKY'],
+    datasets: [
+      {
+        label: 'Risk Level',
+        data: [riskCounts.SAFE, riskCounts.WARNING, riskCounts.RISKY],
+        backgroundColor: ['#22c55e', '#facc15', '#ef4444'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const lineData = {
+    labels,
+    datasets: [
+      {
+        label: 'Confidence Score',
+        data: confidenceScores,
+        fill: false,
+        borderColor: '#3b82f6',
+        backgroundColor: '#3b82f6',
+        tension: 0.2,
+      },
+    ],
+  };
+
   // --- Tab Handlers ---
   // Product Link
-  const handleAnalyzeProductLink = () => {
+  const handleAnalyzeProductLink = async () => {
     if (!productUrl.trim()) {
       setProductLinkError('Please enter a product URL to analyze');
       return;
@@ -47,32 +101,33 @@ export function TrustChecker({ onNavigate }) {
     setIsAnalyzingProductLink(true);
     setProductLinkError(null);
     setProductLinkResult(null);
-    setTimeout(() => {
-      setProductLinkResult({
-        product_title: 'Sample Product',
-        product_description: 'This is a sample product description.',
-        product_image_url: '',
-        reviews: [
-          'Great product! Highly recommend.',
-          'Not as expected, but okay.',
-          'Value for money.'
-        ],
-        image_analysis: {
-          label: 'Authentic',
-          confidence: 0.92,
-          reason: 'No signs of AI generation detected.'
-        },
-        summary: {
-          recommendation: 'Buy',
-          reason: 'Most reviews are positive and the image appears authentic.'
-        }
+    try {
+      const res = await fetch(`http://localhost:8000/analyze-product-link?username=${username}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_url: productUrl })
       });
+      if (!res.ok) {
+        const data = await res.json();
+        setProductLinkError(data.detail || 'Analysis failed');
+        setIsAnalyzingProductLink(false);
+        return;
+      }
+      const result = await res.json();
+      setProductLinkResult(result);
+      setHistory(prev => [
+        { type: 'product_link', product_url: productUrl, result },
+        ...prev
+      ]);
       setIsAnalyzingProductLink(false);
-    }, 1000);
+    } catch (err) {
+      setProductLinkError('Network error');
+      setIsAnalyzingProductLink(false);
+    }
   };
 
   // Review Text
-  const handleAnalyzeReview = () => {
+  const handleAnalyzeReview = async () => {
     if (!reviews.trim()) {
       setReviewError('Please enter review text to analyze');
       return;
@@ -80,17 +135,29 @@ export function TrustChecker({ onNavigate }) {
     setIsAnalyzingReview(true);
     setReviewError(null);
     setReviewResult(null);
-    setTimeout(() => {
-      setReviewResult({
-        confidence_score: 0.85,
-        risk_level: 'Low',
-        badge_color: 'green',
-        badge_text: 'Safe',
-        detailed_analysis: 'The review appears genuine and positive.',
-        recommendations: 'You can trust this product.'
+    try {
+      const res = await fetch(`http://localhost:8000/analyze-review?username=${username}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ review_text: reviews })
       });
-      setIsAnalyzingReview(false);
-    }, 1000);
+      if (!res.ok) {
+        const data = await res.json();
+        setReviewError(data.detail || 'Analysis failed');
+        setIsAnalyzingReview(false);
+        return;
+      }
+      const result = await res.json();
+      setReviewResult(result);
+      // Add to history immediately
+      setHistory(prev => [
+        { review: reviews, result },
+        ...prev
+      ]);
+    } catch (err) {
+      setReviewError('Network error');
+    }
+    setIsAnalyzingReview(false);
   };
 
   // Product Image
@@ -100,18 +167,35 @@ export function TrustChecker({ onNavigate }) {
     setImageVerification(null);
     setImageError(null);
   };
-  const handleAnalyzeImage = () => {
+  const handleAnalyzeImage = async () => {
     if (!selectedImage) return;
     setIsVerifyingImage(true);
     setImageError(null);
     setImageVerification(null);
-    setTimeout(() => {
-      setImageVerification({
-        is_ai_generated: false,
-        confidence: 0.88
+    try {
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+      const res = await fetch(`http://localhost:8000/verify-image?username=${username}`, {
+        method: 'POST',
+        body: formData
       });
+      if (!res.ok) {
+        const data = await res.json();
+        setImageError(data.detail || 'Analysis failed');
+        setIsVerifyingImage(false);
+        return;
+      }
+      const result = await res.json();
+      setImageVerification(result);
+      setHistory(prev => [
+        { type: 'product_image', image: selectedImage.name, result },
+        ...prev
+      ]);
       setIsVerifyingImage(false);
-    }, 1000);
+    } catch (err) {
+      setImageError('Network error');
+      setIsVerifyingImage(false);
+    }
   };
 
   // Voice Input (Web Speech API)
@@ -147,23 +231,33 @@ export function TrustChecker({ onNavigate }) {
     recognitionRef.current = recognition;
     recognition.start();
   };
-  const handleAnalyzeVoice = () => {
+  const handleAnalyzeVoice = async () => {
     if (!voiceText.trim()) {
       setVoiceError('Please speak or enter something to analyze');
       return;
     }
     setVoiceError(null);
     setVoiceResult(null);
-    setTimeout(() => {
-      setVoiceResult({
-        confidence_score: 0.8,
-        risk_level: 'Low',
-        badge_color: 'green',
-        badge_text: 'Safe',
-        detailed_analysis: 'The spoken review appears genuine and positive.',
-        recommendations: 'You can trust this product.'
+    try {
+      const res = await fetch(`http://localhost:8000/analyze-review?username=${username}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ review_text: voiceText })
       });
-    }, 1000);
+      if (!res.ok) {
+        const data = await res.json();
+        setVoiceError(data.detail || 'Analysis failed');
+        return;
+      }
+      const result = await res.json();
+      setVoiceResult(result);
+      setHistory(prev => [
+        { type: 'voice', review: voiceText, result },
+        ...prev
+      ]);
+    } catch (err) {
+      setVoiceError('Network error');
+    }
   };
 
   // --- Tab Definitions ---
@@ -374,16 +468,126 @@ export function TrustChecker({ onNavigate }) {
     },
   ];
 
+  // Group history by type
+  const reviewHistory = history.filter(h => h.type === 'review' || h.type === 'voice');
+  const imageHistory = history.filter(h => h.type === 'product_image');
+  const linkHistory = history.filter(h => h.type === 'product_link');
+
+  // Review analytics
+  const reviewTableData = reviewHistory.map(h => ({
+    review: h.review,
+    confidence: h.result?.confidence_score !== undefined ? (h.result.confidence_score * 100).toFixed(1) + '%' : 'N/A',
+    risk: h.result?.risk_level || (h.type === 'voice' ? 'VOICE' : 'SAFE'),
+  }));
+  const reviewTrend = {
+    labels: reviewHistory.map((_, i) => `Review ${i + 1}`),
+    datasets: [
+      {
+        label: 'Confidence',
+        data: reviewHistory.map(h => h.result?.confidence_score ?? 0),
+        borderColor: '#3b82f6',
+        backgroundColor: '#93c5fd',
+        tension: 0.3,
+      },
+    ],
+  };
+
+  // Image analytics
+  const imageTableData = imageHistory.map(h => ({
+    image: h.image,
+    confidence: h.result?.confidence !== undefined ? (h.result.confidence * 100).toFixed(1) + '%' : 'N/A',
+    risk: h.result?.is_ai_generated ? 'HIGH' : 'LOW',
+  }));
+  const imageTrend = {
+    labels: imageHistory.map((h, i) => h.image || `Image ${i + 1}`),
+    datasets: [
+      {
+        label: 'Confidence',
+        data: imageHistory.map(h => h.result?.confidence ?? 0),
+        borderColor: '#ef4444',
+        backgroundColor: '#fecaca',
+        tension: 0.3,
+      },
+    ],
+  };
+
+  // Link analytics (if needed)
+  const linkTableData = linkHistory.map(h => ({
+    url: h.product_url,
+    summary: h.result?.summary?.reason || 'N/A',
+    recommendation: h.result?.summary?.recommendation || 'N/A',
+  }));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
       <Header
         title="TrustBuddy Checker"
         showBackButton={true}
-        onBackClick={() => onNavigate('home')}
+        onBackClick={() => window.history.back()}
       />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <TabbedInterface tabs={tabs} />
       </div>
+      {username && history.length > 0 && (
+        <div style={{ margin: '24px 0', padding: 24, border: '1px solid #e5e7eb', borderRadius: 12, background: '#fff' }}>
+          <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 16 }}>Your Review History & Analytics</h3>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 32 }}>
+            <div style={{ width: 260, height: 260, background: '#f9fafb', borderRadius: 12, padding: 16 }}>
+              <Pie data={pieData} />
+              <div style={{ textAlign: 'center', marginTop: 8, fontWeight: 500 }}>Risk Level Distribution</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 300, background: '#f9fafb', borderRadius: 12, padding: 16 }}>
+              <Line data={lineData} />
+              <div style={{ textAlign: 'center', marginTop: 8, fontWeight: 500 }}>Confidence Score Trend</div>
+            </div>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', background: '#f8fafc', borderRadius: 8 }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9' }}>
+                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>#</th>
+                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>Review</th>
+                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>Confidence</th>
+                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>Risk Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((item, idx) => {
+                  let confidence = "N/A";
+                  let risk = "SAFE";
+                  let reviewText = item.review || item.product_url || item.image || "";
+
+                  if (item.type === "product_image") {
+                    confidence = item.result?.confidence !== undefined
+                      ? (item.result.confidence * 100).toFixed(1) + "%"
+                      : "N/A";
+                    risk = item.result?.is_ai_generated ? "HIGH" : "LOW";
+                  } else if (item.result) {
+                    confidence = item.result.confidence_score !== undefined
+                      ? (item.result.confidence_score * 100).toFixed(1) + "%"
+                      : "N/A";
+                    risk = item.result.risk_level || "SAFE";
+                  }
+
+                  return (
+                    <tr key={idx}>
+                      <td style={{ padding: 8, border: '1px solid #e5e7eb', textAlign: 'center' }}>{idx + 1}</td>
+                      <td style={{ padding: 8, border: '1px solid #e5e7eb' }}>{reviewText}</td>
+                      <td style={{ padding: 8, border: '1px solid #e5e7eb', textAlign: 'center' }}>{confidence}</td>
+                      <td style={{ padding: 8, border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                        <span style={{
+                          color: risk === 'LOW' ? '#22c55e' : risk === 'MEDIUM' ? '#facc15' : '#ef4444',
+                          fontWeight: 600
+                        }}>{risk}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
