@@ -102,4 +102,19 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
-export default apiService; 
+export default apiService;
+
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+export async function postProductNameAnalysis(product_name, language) {
+  const response = await fetch(`${BASE_URL}/analyze-product-name`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_name, language }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Failed to analyze product name.');
+  }
+  return response.json();
+} 

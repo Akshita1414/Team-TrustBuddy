@@ -3,7 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Header } from '../components/Header';
 import { ResultsSection } from '../components/ResultsSection';
 import { TabbedInterface } from '../components/TabbedInterface';
-import apiService from '../services/api';
+import apiService, { postProductNameAnalysis } from '../services/api';
 import { Link, MessageSquare, Image as ImageIcon, Tag, Mic } from 'lucide-react';
 
 export function TrustChecker({ onNavigate }) {
@@ -134,16 +134,7 @@ export function TrustChecker({ onNavigate }) {
     setNameError(null);
     setNameResult(null);
     try {
-      const response = await fetch('/analyze-product-name', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_name: productName.trim(), language }),
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || 'Failed to analyze product name.');
-      }
-      const result = await response.json();
+      const result = await postProductNameAnalysis(productName.trim(), language);
       setNameResult(result);
     } catch (error) {
       setNameError(error.message || 'Failed to analyze product name.');
@@ -254,14 +245,13 @@ export function TrustChecker({ onNavigate }) {
             className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4 min-h-[100px]"
             disabled={backendStatus === 'disconnected'}
           />
-          <label className="block text-sm font-semibold text-gray-700 mb-2 mt-2">Product Name (Optional)</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2 mt-2">Product Name Context</label>
           <input
             type="text"
-            value={reviewProductName}
-            onChange={e => setReviewProductName(e.target.value)}
-            placeholder="e.g. Red Saree"
-            className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl focus:border-blue-400 focus:outline-none transition-colors mb-4"
-            disabled={backendStatus === 'disconnected'}
+            value={productName}
+            readOnly
+            className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl bg-gray-50 text-gray-500 mb-4"
+            disabled
           />
           <button
             onClick={handleAnalyzeReview}
@@ -295,6 +285,14 @@ export function TrustChecker({ onNavigate }) {
             className="w-full px-4 py-2 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4"
             disabled={backendStatus === 'disconnected'}
           />
+          <label className="block text-sm font-semibold text-gray-700 mb-2 mt-2">Product Name Context</label>
+          <input
+            type="text"
+            value={productName}
+            readOnly
+            className="w-full px-4 py-3 border-2 border-blue-100 rounded-xl bg-gray-50 text-gray-500 mb-4"
+            disabled
+          />
           <button
             onClick={handleAnalyzeImage}
             disabled={!selectedImage || isVerifyingImage || backendStatus === 'disconnected'}
@@ -319,7 +317,7 @@ export function TrustChecker({ onNavigate }) {
       icon: Tag,
       content: (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Enter Product Name</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Enter Product Name (for context)</label>
           <input
             type="text"
             value={productName}
@@ -328,39 +326,9 @@ export function TrustChecker({ onNavigate }) {
             className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4"
             disabled={backendStatus === 'disconnected'}
           />
-          <button
-            onClick={handleAnalyzeName}
-            disabled={!productName.trim() || isAnalyzingName || backendStatus === 'disconnected'}
-            className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg mt-2
-              ${(!productName.trim() || isAnalyzingName || backendStatus === 'disconnected')
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 hover:scale-105'}`}
-          >
-            {isAnalyzingName ? 'Analyzing...' : 'Analyze Name'}
-          </button>
-          {nameError && <div className="mt-4 text-red-600 font-medium">{nameError}</div>}
-          {nameResult && (() => {
-            let riskColor = 'bg-purple-50 border-purple-200';
-            if (nameResult.risk_level) {
-              if (nameResult.risk_level.toLowerCase() === 'low' || nameResult.risk_level.toLowerCase() === 'safe') {
-                riskColor = 'bg-green-50 border-green-300';
-              } else if (nameResult.risk_level.toLowerCase() === 'medium' || nameResult.risk_level.toLowerCase() === 'warning') {
-                riskColor = 'bg-yellow-50 border-yellow-300';
-              } else if (nameResult.risk_level.toLowerCase() === 'high' || nameResult.risk_level.toLowerCase() === 'risky') {
-                riskColor = 'bg-red-50 border-red-300';
-              }
-            }
-            return (
-              <div className={`mt-8 rounded-xl p-6 border ${riskColor}`}>
-                <div className="font-bold text-lg text-purple-700">
-                  {nameResult.badge_text ? nameResult.badge_text : ''} {nameResult.confidence_score !== undefined ? `(${Math.round(nameResult.confidence_score * 100)}% Confidence)` : ''}
-                </div>
-                <div className="text-gray-700 mt-2">
-                  {nameResult.summary}
-                </div>
-              </div>
-            );
-          })()}
+          <div className="mt-4 text-blue-700 bg-blue-50 border border-blue-200 rounded-xl p-4">
+            The product name you enter here will be used as context for review and image analysis. It will not be analyzed directly.
+          </div>
         </div>
       )
     },
