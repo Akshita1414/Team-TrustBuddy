@@ -5,6 +5,8 @@ from models.review import ReviewRequest, ReviewResponse
 from core.review_analyzer import FakeReviewDetector
 from PIL import Image
 import io
+import torch
+from transformers import AutoImageProcessor, AutoModelForImageClassification
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -53,37 +55,21 @@ async def analyze_review(request: ReviewRequest):
 
 @app.post("/verify-image")
 async def verify_image(image: UploadFile = File(...)):
-    """
-    Accepts a product image and determines if it is AI-generated or original.
-    Uses lightweight heuristics (placeholder) for now.
-    """
     try:
-        # Read image bytes
         contents = await image.read()
-        img = Image.open(io.BytesIO(contents))
-        # Placeholder: check for common AI image signatures (e.g., very high resolution, no EXIF, etc.)
-        exif = img.info.get('exif')
-        width, height = img.size
-        # Simple heuristics (replace with better logic or API as needed)
-        is_ai = False
-        confidence = 0.5
-        message = "No strong AI signature detected."
-        if (width > 2000 or height > 2000) and not exif:
-            is_ai = True
-            confidence = 0.8
-            message = "High resolution and missing EXIF data (common in AI images)."
-        elif not exif:
-            is_ai = True
-            confidence = 0.7
-            message = "Missing EXIF data (possible AI image)."
-        elif width > 3000 or height > 3000:
-            is_ai = True
-            confidence = 0.7
-            message = "Very high resolution (possible AI image)."
-        else:
-            is_ai = False
-            confidence = 0.8
-            message = "Image appears original/authentic."
+        img = Image.open(io.BytesIO(contents)).convert('RGB')
+        model_name = "prithivMLmods/open-deepfake-detection"
+        processor = AutoImageProcessor.from_pretrained(model_name)
+        model = AutoModelForImageClassification.from_pretrained(model_name)
+        model.eval()
+        inputs = processor(images=img, return_tensors="pt")
+        with torch.no_grad():
+            outputs = model(**inputs)
+            logits = outputs.logits
+            probs = torch.softmax(logits, dim=1).squeeze()
+            is_ai = bool(torch.argmax(probs).item())
+            confidence = float(probs[1].item()) if is_ai else float(probs[0].item())
+        message = "AI-generated image detected." if is_ai else "Image appears original/authentic."
         return {
             "is_ai_generated": is_ai,
             "confidence": confidence,

@@ -16,11 +16,14 @@ export function InputSection({
   error,
   backendStatus,
   onImageUpload, // NEW PROP
-  selectedImage // NEW PROP
+  selectedImage, // NEW PROP
+  onAnalyzeImage, // NEW PROP
+  isVerifyingImage // NEW PROP
 }) {
   const { t } = useLanguage();
 
   const isAnalyzeDisabled = !reviews.trim() || isAnalyzing || backendStatus === 'disconnected';
+  const isAnalyzeImageDisabled = !selectedImage || backendStatus === 'disconnected' || isVerifyingImage;
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
@@ -122,6 +125,17 @@ export function InputSection({
               <span className="text-xs text-gray-500">{selectedImage.name}</span>
             </div>
           )}
+          <button
+            onClick={onAnalyzeImage}
+            disabled={isAnalyzeImageDisabled}
+            className={`mt-4 w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg ${
+              isAnalyzeImageDisabled
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 hover:scale-105'
+            }`}
+          >
+            {isVerifyingImage ? 'Analyzing Image...' : 'Analyze Image'}
+          </button>
         </div>
       </div>
 

@@ -79,15 +79,22 @@ export function TrustChecker({ onNavigate }) {
     setReviews('');
     setTextQuery('');
     setProductUrl('');
+    setSelectedImage(null);
+    setImageVerification(null);
   };
 
-  const handleImageUpload = async (file) => {
+  const handleImageUpload = (file) => {
     setSelectedImage(file);
     setImageVerification(null);
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!selectedImage) return;
     setIsVerifyingImage(true);
     setError(null);
+    setImageVerification(null);
     try {
-      const result = await apiService.verifyImage(file);
+      const result = await apiService.verifyImage(selectedImage);
       setImageVerification(result);
     } catch (err) {
       setError(err.message || 'Failed to verify image. Please try again.');
@@ -118,7 +125,7 @@ export function TrustChecker({ onNavigate }) {
       )}
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!showResults ? (
+        {(!showResults && !imageVerification) ? (
           <InputSection
             productUrl={productUrl}
             setProductUrl={setProductUrl}
@@ -134,6 +141,8 @@ export function TrustChecker({ onNavigate }) {
             backendStatus={backendStatus}
             onImageUpload={handleImageUpload}
             selectedImage={selectedImage}
+            onAnalyzeImage={handleAnalyzeImage}
+            isVerifyingImage={isVerifyingImage}
           />
         ) : (
           <ResultsSection 
@@ -142,6 +151,7 @@ export function TrustChecker({ onNavigate }) {
             imageVerification={imageVerification}
             selectedImage={selectedImage}
             isVerifyingImage={isVerifyingImage}
+            showBackButton={true}
           />
         )}
       </div>
