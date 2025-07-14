@@ -70,15 +70,35 @@ export function HomePage() {
           />
         </div>
       </main>
-      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+      <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, minWidth: 160 }}>
         {username ? (
           <>
-            <span>Welcome, {username}! </span>
-            <button onClick={handleLogout}>Logout</button>
+            <span style={{ marginRight: 0, fontWeight: 500 }}>Welcome, {username}!</span>
+            <button
+              onClick={handleLogout}
+              style={{
+                marginTop: 4,
+                padding: '6px 18px',
+                background: '#ef4444',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 1px 4px #0001',
+                transition: 'background 0.2s',
+                width: '100%',
+              }}
+              onMouseOver={e => (e.currentTarget.style.background = '#dc2626')}
+              onMouseOut={e => (e.currentTarget.style.background = '#ef4444')}
+            >
+              Logout
+            </button>
           </>
         ) : (
           <a href="/login">Login</a>
         )}
+        {/* Language selector is rendered after this in the header layout */}
       </div>
     </div>
   );

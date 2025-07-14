@@ -529,26 +529,26 @@ export function TrustChecker() {
         <TabbedInterface tabs={tabs} />
       </div>
       {username && history.length > 0 && (
-        <div style={{ margin: '24px 0', padding: 24, border: '1px solid #e5e7eb', borderRadius: 12, background: '#fff' }}>
-          <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 16 }}>Your Review History & Analytics</h3>
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 32 }}>
-            <div style={{ width: 260, height: 260, background: '#f9fafb', borderRadius: 12, padding: 16 }}>
-              <Pie data={pieData} />
-              <div style={{ textAlign: 'center', marginTop: 8, fontWeight: 500 }}>Risk Level Distribution</div>
+        <div style={{ margin: '32px auto', padding: 0, maxWidth: 1100, display: 'flex', flexDirection: 'column', gap: 32 }}>
+          <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 0, alignSelf: 'flex-start' }}>Your Review History & Analytics</h3>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ width: 320, minWidth: 260, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Pie data={pieData} style={{ width: '100%', maxWidth: 220 }} />
+              <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Risk Level Distribution</div>
             </div>
-            <div style={{ flex: 1, minWidth: 300, background: '#f9fafb', borderRadius: 12, padding: 16 }}>
-              <Line data={lineData} />
-              <div style={{ textAlign: 'center', marginTop: 8, fontWeight: 500 }}>Confidence Score Trend</div>
+            <div style={{ flex: 1, minWidth: 340, maxWidth: 600, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Line data={lineData} style={{ width: '100%', maxWidth: 500 }} />
+              <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Confidence Score Trend</div>
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', background: '#f8fafc', borderRadius: 8 }}>
+          <div style={{ background: '#f8fafc', borderRadius: 16, boxShadow: '0 2px 8px #0001', padding: 24, marginTop: 0, overflowX: 'auto', minWidth: 320 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9' }}>
-                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>#</th>
-                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>Review</th>
-                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>Confidence</th>
-                  <th style={{ padding: 8, border: '1px solid #e5e7eb' }}>Risk Level</th>
+                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>#</th>
+                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Review</th>
+                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Confidence</th>
+                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Risk Level</th>
                 </tr>
               </thead>
               <tbody>
@@ -571,10 +571,10 @@ export function TrustChecker() {
 
                   return (
                     <tr key={idx}>
-                      <td style={{ padding: 8, border: '1px solid #e5e7eb', textAlign: 'center' }}>{idx + 1}</td>
-                      <td style={{ padding: 8, border: '1px solid #e5e7eb' }}>{reviewText}</td>
-                      <td style={{ padding: 8, border: '1px solid #e5e7eb', textAlign: 'center' }}>{confidence}</td>
-                      <td style={{ padding: 8, border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                      <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>{idx + 1}</td>
+                      <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{reviewText}</td>
+                      <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>{confidence}</td>
+                      <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>
                         <span style={{
                           color: risk === 'LOW' ? '#22c55e' : risk === 'MEDIUM' ? '#facc15' : '#ef4444',
                           fontWeight: 600
