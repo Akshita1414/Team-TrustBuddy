@@ -1,0 +1,66 @@
+import { API_CONFIG } from '../config';
+
+class ApiService {
+  constructor() {
+    this.baseURL = API_CONFIG.BASE_URL;
+    this.timeout = API_CONFIG.TIMEOUT;
+  }
+
+  async analyzeReview(reviewData) {
+    try {
+      const response = await fetch(`${this.baseURL}/analyze-review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          review_text: reviewData.review_text,
+          product_name: reviewData.product_name || null,
+          reviewer_name: reviewData.reviewer_name || null,
+          rating: reviewData.rating || null,
+          review_date: reviewData.review_date || null,
+          language: reviewData.language || 'en'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to analyze review');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  }
+
+  async healthCheck() {
+    try {
+      const response = await fetch(`${this.baseURL}/health`);
+      if (!response.ok) {
+        throw new Error('Backend service is not available');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Health check failed:', error);
+      throw error;
+    }
+  }
+
+  async getApiInfo() {
+    try {
+      const response = await fetch(`${this.baseURL}/api/info`);
+      if (!response.ok) {
+        throw new Error('Failed to get API info');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get API info:', error);
+      throw error;
+    }
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService; 

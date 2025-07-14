@@ -1,70 +1,232 @@
-# Getting Started with Create React App
+# TrustBuddy - AI-Powered Fake Review Detection
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+TrustBuddy is a comprehensive fake review detection system that uses AI and machine learning to analyze review authenticity. The application consists of a FastAPI backend with ML models and a React frontend for user interaction.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **AI-Powered Analysis**: Advanced text pattern analysis, sentiment analysis, and semantic coherence checking
+- **ML Model Integration**: Machine learning models for authenticity prediction
+- **Real-time Analysis**: Instant review analysis with confidence scoring
+- **Visual Badge System**: Color-coded risk assessment (Green/Yellow/Red)
+- **Detailed Breakdown**: Comprehensive analysis with specific recommendations
+- **Multi-language Support**: Support for English, Hindi, Spanish, and French
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+trustbuddy/
+├── backend/                 # FastAPI backend with ML models
+│   ├── core/               # Core analysis logic
+│   ├── models/             # Pydantic models
+│   ├── main.py             # FastAPI application
+│   ├── review_analyzer.py  # ML model implementation
+│   └── requirements.txt    # Python dependencies
+├── frontend/               # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── pages/          # Page components
+│   │   ├── services/       # API service layer
+│   │   └── utils/          # Utility functions
+│   └── package.json        # Node.js dependencies
+└── README.md              # This file
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Quick Start
 
-### `npm test`
+### Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Python 3.8+ with pip
+- Node.js 16+ with npm
+- Git
 
-### `npm run build`
+### Backend Setup
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **Navigate to backend directory:**
+   ```bash
+   cd backend
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. **Create virtual environment (recommended):**
+   ```bash
+   python -m venv venv
+   
+   # On Windows:
+   venv\Scripts\activate
+   
+   # On macOS/Linux:
+   source venv/bin/activate
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### `npm run eject`
+4. **Start the backend server:**
+   ```bash
+   python main.py
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+   The backend will start on `http://localhost:8000`
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Frontend Setup
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. **Open a new terminal and navigate to frontend directory:**
+   ```bash
+   cd frontend
+   ```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-## Learn More
+3. **Start the frontend development server:**
+   ```bash
+   npm start
+   ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+   The frontend will start on `http://localhost:3000`
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Usage
 
-### Code Splitting
+1. **Open your browser** and go to `http://localhost:3000`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+2. **Navigate to the Trust Checker** page
 
-### Analyzing the Bundle Size
+3. **Enter review text** in the text area (minimum 5 characters)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+4. **Click "Analyze Review"** to get instant results
 
-### Making a Progressive Web App
+5. **View the analysis results** including:
+   - Confidence score and risk level
+   - Text pattern analysis
+   - Sentiment analysis
+   - Coherence analysis
+   - ML model predictions
+   - Detailed recommendations
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## API Endpoints
 
-### Advanced Configuration
+### Backend API (http://localhost:8000)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- `POST /analyze-review` - Analyze a review for authenticity
+- `GET /health` - Health check endpoint
+- `GET /api/info` - API information and capabilities
+- `GET /docs` - Interactive API documentation (Swagger UI)
 
-### Deployment
+### Example API Request
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+curl -X POST "http://localhost:8000/analyze-review" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "review_text": "This product is absolutely amazing! I love it so much. Best purchase ever!",
+    "product_name": "Sample Product",
+    "language": "en"
+  }'
+```
 
-### `npm run build` fails to minify
+## Analysis Features
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Text Pattern Analysis
+- Grammar quality assessment
+- Text length appropriateness
+- Repetitive word detection
+- Excessive punctuation analysis
+- Spam keyword detection
+
+### Sentiment Analysis
+- Positive/negative/neutral sentiment scoring
+- Extreme sentiment detection
+- Sentiment variance analysis
+- Dominant sentiment identification
+
+### Coherence Analysis
+- Semantic coherence scoring
+- Product relevance checking
+- Topic consistency analysis
+- Sentence structure evaluation
+
+### ML Model Analysis
+- Authenticity prediction
+- Model confidence scoring
+- Overall assessment classification
+
+## Development
+
+### Backend Development
+
+The backend uses FastAPI with the following key components:
+
+- **FastAPI**: Modern web framework for building APIs
+- **Pydantic**: Data validation and settings management
+- **Transformers**: Hugging Face transformers for ML models
+- **NLTK**: Natural language processing toolkit
+- **TextBlob**: Sentiment analysis library
+
+### Frontend Development
+
+The frontend uses React with:
+
+- **React 19**: Latest React version
+- **Tailwind CSS**: Utility-first CSS framework
+- **Lucide React**: Beautiful icons
+- **Fetch API**: For backend communication
+
+### Adding New Features
+
+1. **Backend**: Add new endpoints in `main.py` and corresponding logic in `core/`
+2. **Frontend**: Create new components in `src/components/` and integrate with API
+3. **Models**: Update Pydantic models in `backend/models/` as needed
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Backend won't start:**
+   - Check if Python 3.8+ is installed
+   - Ensure all dependencies are installed: `pip install -r requirements.txt`
+   - Check if port 8000 is available
+
+2. **Frontend won't start:**
+   - Check if Node.js 16+ is installed
+   - Ensure all dependencies are installed: `npm install`
+   - Check if port 3000 is available
+
+3. **API calls failing:**
+   - Ensure backend is running on `http://localhost:8000`
+   - Check browser console for CORS errors
+   - Verify network connectivity
+
+4. **ML models not loading:**
+   - First run may take longer as models download
+   - Check internet connection for model downloads
+   - Ensure sufficient disk space for model files
+
+### Environment Variables
+
+Create a `.env` file in the frontend directory:
+
+```env
+REACT_APP_API_URL=http://localhost:8000
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support and questions:
+- Check the API documentation at `http://localhost:8000/docs`
+- Review the console logs for error messages
+- Ensure both backend and frontend are running 
