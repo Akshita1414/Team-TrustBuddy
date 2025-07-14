@@ -26,7 +26,15 @@ export const translations = {
     saveForLater: "Save for Later",
     wasHelpful: "Was this helpful?",
     suggestImprovements: "Suggest improvements",
-    learnMore: "Learn More"
+    learnMore: "Learn More",
+    heroTitle: "AI-Powered Trust Verification for Bharat",
+    heroSubtitle: "Verify product authenticity, check reviews, analyze images, and get confidence scores before making any online purchase. Perfect for Tier 2/3 cities.",
+    'Review Analysis': "Review Analysis",
+    'Review Analysis Desc': "AI-powered detection of fake reviews and suspicious patterns to give you genuine insights.",
+    'Image Verification': "Image Verification",
+    'Image Verification Desc': "Advanced image analysis to detect AI-generated or stolen product images.",
+    'Regional Support': "Regional Support",
+    'Regional Support Desc': "Full support for Hindi, Punjabi, and Marathi languages with voice assistance."
   },
   hi: {
     tagline: "खरीदने से पहले जानें",
@@ -55,7 +63,15 @@ export const translations = {
     saveForLater: "बाद के लिए सेव करें",
     wasHelpful: "क्या यह सहायक था?",
     suggestImprovements: "सुधार सुझाएं",
-    learnMore: "और जानें"
+    learnMore: "और जानें",
+    heroTitle: "भारत के लिए एआई-संचालित ट्रस्ट सत्यापन",
+    heroSubtitle: "किसी भी ऑनलाइन खरीदारी से पहले उत्पाद की प्रामाणिकता जांचें, समीक्षाएं देखें, छवियों का विश्लेषण करें, और विश्वास स्कोर प्राप्त करें। टियर 2/3 शहरों के लिए उपयुक्त।",
+    'Review Analysis': "समीक्षा विश्लेषण",
+    'Review Analysis Desc': "नकली समीक्षाओं और संदिग्ध पैटर्न का एआई-संचालित पता लगाना ताकि आपको वास्तविक जानकारी मिल सके।",
+    'Image Verification': "छवि सत्यापन",
+    'Image Verification Desc': "एआई-जनित या चोरी की गई उत्पाद छवियों का पता लगाने के लिए उन्नत छवि विश्लेषण।",
+    'Regional Support': "क्षेत्रीय समर्थन",
+    'Regional Support Desc': "हिंदी, पंजाबी और मराठी भाषाओं के लिए वॉयस असिस्टेंस के साथ पूर्ण समर्थन।"
   },
   pa: {
     tagline: "ਖਰੀਦਣ ਤੋਂ ਪਹਿਲਾਂ ਜਾਣੋ",
@@ -84,7 +100,15 @@ export const translations = {
     saveForLater: "ਬਾਅਦ ਲਈ ਸੇਵ ਕਰੋ",
     wasHelpful: "ਕੀ ਇਹ ਮਦਦਗਾਰ ਸੀ?",
     suggestImprovements: "ਸੁਧਾਰ ਸੁਝਾਓ",
-    learnMore: "ਹੋਰ ਜਾਣੋ"
+    learnMore: "ਹੋਰ ਜਾਣੋ",
+    heroTitle: "ਭਾਰਤ ਲਈ ਏਆਈ-ਚਲਿਤ ਭਰੋਸੇਯੋਗਤਾ ਜਾਂਚ",
+    heroSubtitle: "ਕਿਸੇ ਵੀ ਔਨਲਾਈਨ ਖਰੀਦ ਤੋਂ ਪਹਿਲਾਂ ਉਤਪਾਦ ਦੀ ਪ੍ਰਮਾਣਿਕਤਾ ਜਾਂਚੋ, ਸਮੀਖਿਆਵਾਂ ਵੇਖੋ, ਚਿੱਤਰਾਂ ਦਾ ਵਿਸ਼ਲੇਸ਼ਣ ਕਰੋ, ਅਤੇ ਭਰੋਸੇਯੋਗਤਾ ਸਕੋਰ ਪ੍ਰਾਪਤ ਕਰੋ। ਟੀਅਰ 2/3 ਸ਼ਹਿਰਾਂ ਲਈ ਉਚਿਤ।",
+    'Review Analysis': "ਸਮੀਖਿਆ ਵਿਸ਼ਲੇਸ਼ਣ",
+    'Review Analysis Desc': "ਨਕਲੀ ਸਮੀਖਿਆਵਾਂ ਅਤੇ ਸੰਦੇਹਾਸਪਦ ਪੈਟਰਨ ਦੀ ਏਆਈ-ਚਲਿਤ ਖੋਜ, ਤੁਹਾਨੂੰ ਅਸਲ ਜਾਣਕਾਰੀ ਦੇਣ ਲਈ।",
+    'Image Verification': "ਚਿੱਤਰ ਜਾਂਚ",
+    'Image Verification Desc': "ਏਆਈ-ਜਨਰੇਟ ਕੀਤੀਆਂ ਜਾਂ ਚੋਰੀ ਕੀਤੀਆਂ ਉਤਪਾਦ ਚਿੱਤਰਾਂ ਦੀ ਪਛਾਣ ਲਈ ਉੱਨਤ ਚਿੱਤਰ ਵਿਸ਼ਲੇਸ਼ਣ।",
+    'Regional Support': "ਖੇਤਰੀ ਸਹਾਇਤਾ",
+    'Regional Support Desc': "ਹਿੰਦੀ, ਪੰਜਾਬੀ ਅਤੇ ਮਰਾਠੀ ਭਾਸ਼ਾਵਾਂ ਲਈ ਵਾਇਸ ਅਸਿਸਟੈਂਸ ਦੇ ਨਾਲ ਪੂਰਾ ਸਮਰਥਨ।"
   },
   mr: {
     tagline: "खरेदी करण्यापूर्वी जाणून घ्या",
@@ -113,6 +137,14 @@ export const translations = {
     saveForLater: "नंतरसाठी सेव्ह करा",
     wasHelpful: "हे उपयुक्त होते का?",
     suggestImprovements: "सुधारणा सुचवा",
-    learnMore: "अधिक जाणून घ्या"
+    learnMore: "अधिक जाणून घ्या",
+    heroTitle: "भारतासाठी एआय-चालित ट्रस्ट पडताळणी",
+    heroSubtitle: "कोणतीही ऑनलाइन खरेदी करण्यापूर्वी उत्पादनाची प्रामाणिकता तपासा, पुनरावलोकने तपासा, प्रतिमांचे विश्लेषण करा आणि विश्वास स्कोअर मिळवा. टियर 2/3 शहरांसाठी योग्य.",
+    'Review Analysis': "पुनरावलोकन विश्लेषण",
+    'Review Analysis Desc': "खोट्या पुनरावलोकनांचा आणि संशयास्पद नमुन्यांचा एआय-चालित शोध, तुम्हाला खरी माहिती देण्यासाठी.",
+    'Image Verification': "प्रतिमा पडताळणी",
+    'Image Verification Desc': "एआय-निर्मित किंवा चोरी केलेल्या उत्पादन प्रतिमांची ओळख पटवण्यासाठी प्रगत प्रतिमा विश्लेषण.",
+    'Regional Support': "प्रादेशिक समर्थन",
+    'Regional Support Desc': "हिंदी, पंजाबी आणि मराठी भाषांसाठी व्हॉइस असिस्टन्ससह पूर्ण समर्थन."
   }
 };

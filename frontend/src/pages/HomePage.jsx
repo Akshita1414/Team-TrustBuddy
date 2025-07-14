@@ -16,14 +16,10 @@ export function HomePage({ onNavigate }) {
         <div className="text-center">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              AI-Powered Trust Verification for{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-blue-600">
-                Bharat
-              </span>
+              {t('heroTitle')}
             </h2>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Verify product authenticity, check reviews, analyze images, and get confidence scores 
-              before making any online purchase. Perfect for Tier 2/3 cities.
+              {t('heroSubtitle')}
             </p>
 
             <button
@@ -41,22 +37,22 @@ export function HomePage({ onNavigate }) {
         <div className="mt-20 grid md:grid-cols-3 gap-8">
           <FeatureCard
             icon={CheckCircle}
-            title="Review Analysis"
-            description="AI-powered detection of fake reviews and suspicious patterns to give you genuine insights."
+            title={t('Review Analysis')}
+            description={t('Review Analysis Desc')}
             gradient="bg-gradient-to-r from-green-500 to-green-600"
           />
 
           <FeatureCard
             icon={Upload}
-            title="Image Verification"
-            description="Advanced image analysis to detect AI-generated or stolen product images."
+            title={t('Image Verification')}
+            description={t('Image Verification Desc')}
             gradient="bg-gradient-to-r from-blue-500 to-blue-600"
           />
 
           <FeatureCard
             icon={Globe}
-            title="Regional Support"
-            description="Full support for Hindi, Punjabi, and Marathi languages with voice assistance."
+            title={t('Regional Support')}
+            description={t('Regional Support Desc')}
             gradient="bg-gradient-to-r from-purple-500 to-purple-600"
           />
         </div>

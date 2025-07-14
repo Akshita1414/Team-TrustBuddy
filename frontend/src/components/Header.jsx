@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { LANGUAGES } from '../data/constants';
 
 export function Header({ title, showBackButton, onBackClick }) {
-  const { language, setLanguage, t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
 
   return (
     <header className="bg-white shadow-md border-b-4 border-orange-400">
