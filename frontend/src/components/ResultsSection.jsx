@@ -17,7 +17,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { getScoreColor, getBadgeColor, getTrustBadge } from '../utils/trustUtils';
 import { AnalysisCard } from './AnalysisCard';
 
-export function ResultsSection({ analysisResult, onNewAnalysis }) {
+export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage }) {
   const { t } = useLanguage();
 
   if (!analysisResult) {
@@ -42,6 +42,29 @@ export function ResultsSection({ analysisResult, onNewAnalysis }) {
 
   return (
     <div className="space-y-8">
+      {/* Product Image Verification Result */}
+      {(selectedImage || isVerifyingImage || imageVerification) && (
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 flex flex-col items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Product Image Verification</h3>
+          {selectedImage && (
+            <img src={URL.createObjectURL(selectedImage)} alt="Product Preview" className="h-32 rounded shadow mb-2" />
+          )}
+          {isVerifyingImage && (
+            <div className="text-blue-600 font-medium mt-2">Analyzing image authenticity...</div>
+          )}
+          {imageVerification && !isVerifyingImage && (
+            <div className={`mt-2 px-4 py-2 rounded-xl font-semibold border-2 ${imageVerification.is_ai_generated ? 'border-red-500 text-red-600' : 'border-green-500 text-green-600'}`}>
+              {imageVerification.is_ai_generated ? '⚠️ AI-Generated Image Detected' : '✅ Original/Authentic Image Detected'}
+              {imageVerification.confidence && (
+                <span className="ml-2 text-sm text-gray-500">(Confidence: {Math.round(imageVerification.confidence * 100)}%)</span>
+              )}
+              {imageVerification.message && (
+                <div className="text-xs text-gray-500 mt-1">{imageVerification.message}</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {/* Results Header */}
       <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
         <div className="flex items-center justify-between mb-6">

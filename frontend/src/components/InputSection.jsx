@@ -14,7 +14,9 @@ export function InputSection({
   onAnalyze,
   isAnalyzing,
   error,
-  backendStatus
+  backendStatus,
+  onImageUpload, // NEW PROP
+  selectedImage // NEW PROP
 }) {
   const { t } = useLanguage();
 
@@ -101,18 +103,25 @@ export function InputSection({
         {/* Image Upload */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Image Upload (Coming Soon)
+            Product Image (Optional)
           </label>
-          <div className={`w-full px-4 py-3 border-2 border-dashed rounded-xl transition-colors ${
-            backendStatus === 'disconnected' 
-              ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-              : 'border-gray-300 hover:border-blue-400 cursor-pointer'
-          }`}>
-            <div className="flex items-center justify-center space-x-2">
-              <Upload className="w-5 h-5" />
-              <span>Click to upload or drag image</span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={e => {
+              if (e.target.files && e.target.files[0]) {
+                onImageUpload(e.target.files[0]);
+              }
+            }}
+            className="w-full px-4 py-3 border-2 border-dashed rounded-xl transition-colors"
+            disabled={backendStatus === 'disconnected'}
+          />
+          {selectedImage && (
+            <div className="mt-2 flex items-center space-x-2">
+              <img src={URL.createObjectURL(selectedImage)} alt="Preview" className="h-16 rounded shadow" />
+              <span className="text-xs text-gray-500">{selectedImage.name}</span>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

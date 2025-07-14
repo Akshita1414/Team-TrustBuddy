@@ -44,15 +44,26 @@ class ReviewAnalyzer:
         except:
             self.fake_detector = None
         
-        # Initialize spam detection patterns
+        # Enhanced spam/fake patterns with more specificity
         self.spam_patterns = [
-            r'\b(amazing|perfect|excellent|fantastic|incredible)\b.*\b(amazing|perfect|excellent|fantastic|incredible)\b',
-            r'\b(buy|purchase|click|link|website|deal)\b.*\b(now|today|hurry|limited)\b',
-            r'\b\d+\s*(star|stars)\b.*\b\d+\s*(star|stars)\b',
-            r'\b(fake|scam|fraud|cheat|lie)\b',
-            r'\$\d+|\d+\$|cheap|free|discount|sale',
-            r'\b(best|worst)\b.*\b(ever|never)\b',
-            r'\b(must|should|need to|have to)\b.*\b(buy|purchase|get|order)\b'
+            r'\b(amazing|perfect|excellent|fantastic|incredible|outstanding|phenomenal|spectacular)\b.*\b(amazing|perfect|excellent|fantastic|incredible|outstanding|phenomenal|spectacular)\b',
+            r'\b(buy|purchase|click|link|website|deal)\b.*\b(now|today|hurry|limited|urgent|immediately)\b',
+            r'\b\d+\s*star[s]?\b.*\b\d+\s*star[s]?\b',
+            r'\b(changed\s+my\s+life|life\s+changing|best\s+thing\s+ever|never\s+seen\s+anything\s+like\s+it)\b',
+            r'\$\d+|\d+\$|cheap|free|discount|sale|deal|offer',
+            r'\b(must\s+have|must\s+buy|everyone\s+should|recommend\s+to\s+everyone)\b',
+            r'\b(works\s+perfectly|exactly\s+as\s+described|just\s+as\s+advertised)\b',
+            r'\b(don\'t\s+miss|limited\s+time|act\s+now|hurry\s+up)\b',
+            r'\b(five\s+stars?|5\s+stars?|⭐|★){2,}',
+            r'\b(absolutely|totally|completely|100%)\s+(amazing|perfect|satisfied|recommend)\b'
+        ]
+        
+        # Fake review phrases that are commonly used
+        self.fake_phrases = [
+            "changed my life", "best thing ever", "never seen anything like it",
+            "works perfectly", "exactly as described", "five stars all the way",
+            "recommend to everyone", "don't miss this", "incredible deal",
+            "absolutely amazing", "blown away", "exceeded expectations"
         ]
         
         # Load English stopwords
@@ -69,13 +80,7 @@ class FakeReviewDetector:
     
     def analyze_text_patterns(self, text: str) -> Dict:
         """
-        Analyze text for suspicious patterns that indicate fake reviews
-        
-        Args:
-            text: Review text to analyze
-            
-        Returns:
-            Dictionary containing various text pattern scores
+        Enhanced text pattern analysis with better fake detection
         """
         results = {
             'repetitive_words': 0,
@@ -85,84 +90,118 @@ class FakeReviewDetector:
             'length_score': 0,
             'caps_ratio': 0,
             'exclamation_ratio': 0,
-            'question_ratio': 0
+            'question_ratio': 0,
+            'fake_phrases_count': 0,
+            'superlative_density': 0,
+            'emotional_intensity': 0,
+            'unique_word_ratio': 0.0
         }
         
         if not text:
             return results
             
-        # Check for repetitive words
-        words = text.lower().split()
+        text_lower = text.lower()
+        
+        # Check for repetitive words (improved)
+        words = text_lower.split()
         if words:
             word_counts = Counter(words)
-            most_common = word_counts.most_common(5)
-            if most_common:
-                results['repetitive_words'] = most_common[0][1] / len(words)
+            # Filter out common words and focus on content words
+            content_words = [word for word in words if word not in self.analyzer.stop_words and len(word) > 2]
+            if content_words:
+                content_word_counts = Counter(content_words)
+                most_common = content_word_counts.most_common(3)
+                if most_common:
+                    # Calculate repetition score more strictly
+                    total_repetitions = sum(count for word, count in most_common if count > 1)
+                    results['repetitive_words'] = min(1.0, total_repetitions / len(content_words))
         
-        # Check excessive punctuation
-        punct_count = sum(1 for char in text if char in string.punctuation)
-        results['excessive_punctuation'] = punct_count / len(text) if text else 0
+        # Enhanced punctuation analysis
+        exclamation_count = text.count('!')
+        question_count = text.count('?')
+        total_chars = len(text)
         
-        # Check exclamation and question ratios
-        results['exclamation_ratio'] = text.count('!') / len(text) if text else 0
-        results['question_ratio'] = text.count('?') / len(text) if text else 0
+        if total_chars > 0:
+            results['exclamation_ratio'] = exclamation_count / total_chars
+            results['question_ratio'] = question_count / total_chars
+            
+            # Penalize excessive exclamations more heavily
+            if exclamation_count > 3:
+                results['excessive_punctuation'] = min(1.0, exclamation_count / 10)
+            
+            # Check for caps (yelling)
+            caps_count = sum(1 for char in text if char.isupper())
+            results['caps_ratio'] = caps_count / total_chars
         
-        # Check for spam patterns
+        # Enhanced spam pattern detection
         spam_matches = 0
         for pattern in self.analyzer.spam_patterns:
-            if re.search(pattern, text, re.IGNORECASE):
-                spam_matches += 1
-        results['spam_keywords'] = spam_matches / len(self.analyzer.spam_patterns)
+            matches = len(re.findall(pattern, text, re.IGNORECASE))
+            spam_matches += matches
         
-        # Grammar and spelling check using TextBlob
+        results['spam_keywords'] = min(1.0, spam_matches / 3)  # Normalize to 0-1
+        
+        # Check for fake phrases
+        fake_phrase_count = 0
+        for phrase in self.analyzer.fake_phrases:
+            if phrase in text_lower:
+                fake_phrase_count += 1
+        results['fake_phrases_count'] = min(1.0, fake_phrase_count / 3)
+        
+        # Superlative density (amazing, incredible, perfect, etc.)
+        superlatives = ['amazing', 'incredible', 'perfect', 'excellent', 'outstanding', 
+                       'phenomenal', 'spectacular', 'fantastic', 'wonderful', 'brilliant']
+        superlative_count = sum(text_lower.count(word) for word in superlatives)
+        results['superlative_density'] = min(1.0, superlative_count / max(1, len(words) / 10))
+        
+        # Emotional intensity (multiple exclamations, caps, superlatives)
+        emotional_indicators = exclamation_count + (caps_count / 10) + superlative_count
+        results['emotional_intensity'] = min(1.0, emotional_indicators / max(1, len(words) / 5))
+        
+        # Lexical diversity (unique words / total words)
+        if words:
+            unique_word_ratio = len(set(words)) / len(words)
+        else:
+            unique_word_ratio = 0.0
+        results['unique_word_ratio'] = unique_word_ratio
+        
+        # Grammar analysis (improved)
         try:
             blob = TextBlob(text)
             corrected = blob.correct()
-            # Calculate grammar score based on corrections needed
             original_words = str(blob).split()
             corrected_words = str(corrected).split()
             
-            differences = 0
-            for i, (orig, corr) in enumerate(zip(original_words, corrected_words)):
-                if orig != corr:
-                    differences += 1
-            
-            results['grammar_score'] = max(0, 1 - (differences / len(original_words))) if original_words else 0.5
+            if original_words:
+                differences = sum(1 for orig, corr in zip(original_words, corrected_words) if orig != corr)
+                results['grammar_score'] = max(0, 1 - (differences / len(original_words)))
+            else:
+                results['grammar_score'] = 0.5
         except:
             results['grammar_score'] = 0.5
         
-        # Length analysis
+        # Length analysis (more nuanced)
         word_count = len(words)
-        if word_count < 10:
-            results['length_score'] = 0.3  # Too short
-        elif word_count > 300:
-            results['length_score'] = 0.4  # Too long
-        elif word_count > 200:
-            results['length_score'] = 0.7  # Slightly long
-        else:
+        if word_count < 5:
+            results['length_score'] = 0.2  # Very short, likely fake
+        elif word_count < 15:
+            results['length_score'] = 0.6  # Short but could be genuine
+        elif word_count <= 100:
             results['length_score'] = 1.0  # Good length
-        
-        # Caps ratio
-        if text:
-            caps_count = sum(1 for char in text if char.isupper())
-            results['caps_ratio'] = caps_count / len(text)
+        elif word_count <= 200:
+            results['length_score'] = 0.8  # Slightly long
+        else:
+            results['length_score'] = 0.5  # Very long, might be fake
         
         return results
     
     def analyze_sentiment(self, text: str) -> Dict:
         """
-        Analyze sentiment for extreme patterns that might indicate fake reviews
-        
-        Args:
-            text: Review text to analyze
-            
-        Returns:
-            Dictionary containing sentiment analysis results
+        Enhanced sentiment analysis focusing on fake patterns
         """
         try:
             sentiment_results = self.analyzer.sentiment_analyzer(text)[0]
             
-            # Convert to a more readable format
             sentiment_scores = {}
             for result in sentiment_results:
                 label = result['label'].lower()
@@ -173,92 +212,140 @@ class FakeReviewDetector:
                 else:
                     sentiment_scores['neutral'] = result['score']
             
-            # Check for extreme sentiment (potential fake indicator)
+            # Get the dominant sentiment and its confidence
+            dominant_sentiment = max(sentiment_scores.keys(), key=lambda k: sentiment_scores[k])
             max_score = max(sentiment_scores.values())
-            extreme_sentiment = max_score > 0.95  # Very extreme sentiment
             
-            # Calculate sentiment variance (balanced reviews have more variance)
-            sentiment_variance = np.var(list(sentiment_scores.values()))
+            # More nuanced extreme sentiment detection
+            # Extremely positive reviews (>95% confidence) are often fake
+            extreme_positive = (dominant_sentiment == 'positive' and max_score > 0.95)
+            
+            # Extremely negative reviews can also be fake, but less common
+            extreme_negative = (dominant_sentiment == 'negative' and max_score > 0.98)
+            
+            extreme_sentiment = extreme_positive or extreme_negative
+            
+            # Calculate sentiment variance
+            sentiment_variance = float(np.var(list(sentiment_scores.values())))
+            
+            # Balanced sentiment is more authentic
+            balance_score = 1.0 - max_score  # Lower when sentiment is extreme
             
             return {
                 'scores': sentiment_scores,
                 'extreme_sentiment': extreme_sentiment,
-                'dominant_sentiment': max(sentiment_scores.keys(), key=lambda k: sentiment_scores[k]),
-                'sentiment_variance': float(sentiment_variance),
-                'confidence': max_score
+                'extreme_positive': extreme_positive,
+                'extreme_negative': extreme_negative,
+                'dominant_sentiment': dominant_sentiment,
+                'sentiment_variance': sentiment_variance,
+                'confidence': max_score,
+                'balance_score': balance_score
             }
         except Exception as e:
             return {
                 'scores': {'positive': 0.33, 'negative': 0.33, 'neutral': 0.34},
                 'extreme_sentiment': False,
+                'extreme_positive': False,
+                'extreme_negative': False,
                 'dominant_sentiment': 'neutral',
                 'sentiment_variance': 0.0,
-                'confidence': 0.5
+                'confidence': 0.5,
+                'balance_score': 0.5
             }
     
     def analyze_semantic_coherence(self, text: str, product_name: str = None) -> Dict:
         """
-        Check if review content matches product context and is coherent
-        
-        Args:
-            text: Review text to analyze
-            product_name: Optional product name for context matching
-            
-        Returns:
-            Dictionary containing coherence analysis results
+        Enhanced semantic coherence analysis
         """
-        coherence_score = 0.5  # Default neutral score
+        coherence_score = 0.5
         product_relevance = False
+        specificity_score = 0.5
         
+        if not text:
+            return {
+                'coherence_score': coherence_score,
+                'product_relevance': product_relevance,
+                'topic_consistency': 0.5,
+                'sentence_count': 0,
+                'specificity_score': specificity_score
+            }
+        
+        # Product relevance analysis
         if product_name and text:
-            # Simple keyword matching (can be enhanced with more sophisticated NLP)
             product_words = set(product_name.lower().split())
             review_words = set(text.lower().split())
             
-            # Remove stopwords
             product_words = product_words - self.analyzer.stop_words
             review_words = review_words - self.analyzer.stop_words
             
             if product_words and review_words:
                 overlap = len(product_words.intersection(review_words))
                 coherence_score = min(1.0, overlap / len(product_words))
-                product_relevance = coherence_score > 0.3
+                product_relevance = coherence_score > 0.2
         
-        # Additional coherence checks
-        sentences = text.split('.')
-        sentence_count = len([s for s in sentences if s.strip()])
+        # Specificity analysis - genuine reviews mention specific features
+        specific_words = [
+            'battery', 'screen', 'button', 'size', 'weight', 'color', 'material', 
+            'feature', 'function', 'design', 'quality', 'performance', 'durability',
+            'comfortable', 'heavy', 'light', 'smooth', 'rough', 'fast', 'slow',
+            'week', 'month', 'day', 'hour', 'time', 'experience', 'issue', 'problem',
+            'hydration', 'moisturizer', 'scent', 'greasy', 'absorb', 'camera', 'photo',
+            'picture', 'sound', 'audio', 'speaker', 'display', 'resolution', 'touch',
+            'build', 'finish', 'texture', 'fit', 'charging', 'usb', 'bluetooth', 'connect',
+            'setup', 'installation', 'instructions', 'manual', 'support', 'service', 'customer',
+            'price', 'value', 'packaging', 'shipping', 'delivery', 'return', 'refund', 'replacement',
+            'durable', 'sturdy', 'fragile', 'easy', 'difficult', 'hard', 'simple', 'complicated',
+            'recommend', 'daily', 'routine', 'effect', 'result', 'difference', 'notice', 'improvement',
+            'lasting', 'charge', 'usage', 'portable', 'compact', 'large', 'small', 'lightweight', 'heavyweight'
+        ]
         
-        # Check for topic consistency (basic implementation)
+        text_words = set(text.lower().split())
+        specific_mentions = len(text_words.intersection(specific_words))
+        specificity_score = min(1.0, specific_mentions / 5)  # Normalize to 0-1
+        
+        # Sentence analysis
+        sentences = [s.strip() for s in text.split('.') if s.strip()]
+        sentence_count = len(sentences)
+        
+        # Topic consistency (basic check for coherent narrative)
         topic_consistency = 0.7 if sentence_count > 1 else 0.5
+        
+        # Penalize reviews that are just lists of superlatives
+        if sentence_count > 0:
+            superlative_sentences = sum(1 for s in sentences if any(word in s.lower() 
+                                      for word in ['amazing', 'perfect', 'incredible', 'fantastic']))
+            if superlative_sentences / sentence_count > 0.8:
+                topic_consistency *= 0.5
         
         return {
             'coherence_score': coherence_score,
             'product_relevance': product_relevance,
             'topic_consistency': topic_consistency,
-            'sentence_count': sentence_count
+            'sentence_count': sentence_count,
+            'specificity_score': specificity_score
         }
     
     def get_ml_prediction(self, text: str) -> Dict:
         """
         Get ML model prediction for review authenticity
-        
-        Args:
-            text: Review text to analyze
-            
-        Returns:
-            Dictionary containing ML prediction results
         """
         if not self.analyzer.fake_detector:
             return {'authenticity_score': 0.5, 'model_confidence': 0.5}
         
         try:
             ml_result = self.analyzer.fake_detector(text)
-            # Assuming the model returns toxicity score, we invert it for authenticity
             if ml_result and len(ml_result) > 0:
-                toxicity_score = ml_result[0]['score'] if ml_result[0]['label'] == 'TOXIC' else 1 - ml_result[0]['score']
+                # Assuming the model returns toxicity score
+                for result in ml_result:
+                    if result['label'] == 'TOXIC':
+                        toxicity_score = result['score']
+                        break
+                else:
+                    toxicity_score = 0.5
+                
                 return {
-                    'authenticity_score': 1 - toxicity_score,
-                    'model_confidence': ml_result[0]['score']
+                    'authenticity_score': max(0.1, 1 - toxicity_score),
+                    'model_confidence': toxicity_score
                 }
         except Exception as e:
             pass
@@ -267,82 +354,113 @@ class FakeReviewDetector:
     
     def calculate_confidence_score(self, analyses: Dict) -> float:
         """
-        Calculate overall confidence score based on all analyses
-        
-        Args:
-            analyses: Dictionary containing all analysis results
-            
-        Returns:
-            Float confidence score between 0 and 1
+        Fixed confidence score calculation with proper weighting
         """
-        weights = {
-            'text_patterns': 0.3,
-            'sentiment': 0.25,
-            'semantic_coherence': 0.2,
-            'ml_prediction': 0.25
-        }
-        
-        # Text pattern score (lower suspicious patterns = higher authenticity)
+        # Extract analysis results
         text_patterns = analyses['text_patterns']
-        text_score = 1 - (
-            text_patterns['repetitive_words'] * 0.25 +
-            text_patterns['excessive_punctuation'] * 0.15 +
-            text_patterns['spam_keywords'] * 0.3 +
-            (1 - text_patterns['grammar_score']) * 0.1 +
-            (1 - text_patterns['length_score']) * 0.05 +
-            text_patterns['caps_ratio'] * 0.1 +
-            text_patterns['exclamation_ratio'] * 0.05
-        )
-        
-        # Sentiment score (extreme sentiment might indicate fake)
         sentiment_analysis = analyses['sentiment']
-        sentiment_score = 0.3 if sentiment_analysis['extreme_sentiment'] else 0.8
-        # Adjust for sentiment variance (balanced sentiment is more authentic)
-        sentiment_score += min(0.2, sentiment_analysis['sentiment_variance'] * 2)
-        
-        # Semantic coherence score
         coherence_analysis = analyses['semantic_coherence']
+        ml_analysis = analyses.get('ml_prediction', {})
+        
+        # Calculate text suspicion score (higher = more suspicious)
+        text_suspicion = (
+            text_patterns['repetitive_words'] * 0.15 +
+            text_patterns['excessive_punctuation'] * 0.08 +
+            text_patterns['spam_keywords'] * 0.18 +
+            text_patterns['fake_phrases_count'] * 0.15 +
+            text_patterns['superlative_density'] * 0.15 +
+            text_patterns['emotional_intensity'] * 0.08 +
+            text_patterns['caps_ratio'] * 0.03 +
+            text_patterns['exclamation_ratio'] * 0.08
+        )
+
+        # Lexical diversity bonus
+        lexical_diversity = text_patterns.get('unique_word_ratio', 0.0)
+        lexical_bonus = 0.10 if lexical_diversity > 0.5 else 0.0
+
+        # Grammar and length contribute to authenticity
+        grammar_authenticity = text_patterns['grammar_score'] * 0.25
+        length_authenticity = text_patterns['length_score'] * 0.6
+        text_authenticity = grammar_authenticity + length_authenticity + lexical_bonus
+
+        # Calculate text score (0 = fake, 1 = authentic)
+        text_score = max(0.0, (text_authenticity - text_suspicion))
+
+        # Sentiment score (extreme sentiment is suspicious, but less aggressive)
+        sentiment_score = 0.8  # Default
+        if sentiment_analysis['extreme_positive'] and text_patterns['superlative_density'] > 0.4:
+            sentiment_score = 0.3  # Only penalize if both are present
+        elif sentiment_analysis['extreme_negative']:
+            sentiment_score = 0.4
+        elif sentiment_analysis['extreme_sentiment']:
+            sentiment_score = 0.5
+        else:
+            sentiment_score = 0.6 + (sentiment_analysis['balance_score'] * 0.4)
+
+        # Coherence score (specificity and relevance matter, more weight)
         coherence_score = (
-            coherence_analysis['coherence_score'] * 0.6 +
-            coherence_analysis['topic_consistency'] * 0.4
+            coherence_analysis['specificity_score'] * 0.5 +
+            coherence_analysis['topic_consistency'] * 0.25 +
+            (1.0 if coherence_analysis['product_relevance'] else 0.5) * 0.25
         )
-        
-        # ML prediction score
-        ml_score = analyses.get('ml_prediction', {}).get('authenticity_score', 0.5)
-        
-        # Calculate weighted average
-        total_score = (
-            text_score * weights['text_patterns'] +
+
+        # ML score
+        ml_score = ml_analysis.get('authenticity_score', 0.5)
+
+        # Weighted final score with more emphasis on text and coherence
+        weights = {
+            'text': 0.45,
+            'sentiment': 0.15,
+            'coherence': 0.30,
+            'ml': 0.10
+        }
+
+        final_score = (
+            text_score * weights['text'] +
             sentiment_score * weights['sentiment'] +
-            coherence_score * weights['semantic_coherence'] +
-            ml_score * weights['ml_prediction']
+            coherence_score * weights['coherence'] +
+            ml_score * weights['ml']
         )
-        
-        return max(0.0, min(1.0, total_score))
+
+        # Only apply strong penalties if multiple suspicious signals are present
+        suspicious_count = sum([
+            text_patterns['fake_phrases_count'] > 0.5,
+            text_patterns['spam_keywords'] > 0.6,
+            text_patterns['superlative_density'] > 0.5,
+            text_patterns['repetitive_words'] > 0.5,
+            not coherence_analysis['product_relevance']
+        ])
+        if suspicious_count >= 2:
+            final_score *= 0.6
+        elif suspicious_count == 1:
+            final_score *= 0.8
+
+        # Add bonus for multi-sentence, specific reviews
+        if coherence_analysis['sentence_count'] >= 2 and coherence_analysis['specificity_score'] > 0.5:
+            final_score += 0.08
+        # Reduce penalty for missing product relevance if specificity is high
+        if not coherence_analysis['product_relevance'] and coherence_analysis['specificity_score'] > 0.6:
+            final_score /= 0.7
+
+        return max(0.0, min(1.0, final_score))
     
     def get_risk_level_and_badge(self, confidence_score: float) -> Dict:
         """
         Determine risk level and badge based on confidence score
-        
-        Args:
-            confidence_score: Float score between 0 and 1
-            
-        Returns:
-            Dictionary containing risk level and badge information
         """
-        if confidence_score >= 0.7:
+        if confidence_score >= 0.6:  # Lowered threshold for authentic
             return {
                 'risk_level': 'LOW',
                 'badge_color': 'green',
                 'badge_text': 'SAFE',
-                'description': 'Review appears authentic and trustworthy'
+                'description': 'Review appears genuine and trustworthy'
             }
-        elif confidence_score >= 0.4:
+        elif confidence_score >= 0.3:
             return {
                 'risk_level': 'MEDIUM',
                 'badge_color': 'yellow',
                 'badge_text': 'WARNING',
-                'description': 'Review has some suspicious elements, proceed with caution'
+                'description': 'Review has suspicious elements, verify carefully'
             }
         else:
             return {
@@ -354,61 +472,59 @@ class FakeReviewDetector:
     
     def generate_recommendations(self, analyses: Dict, risk_level: str) -> List[str]:
         """
-        Generate actionable recommendations based on analysis results
-        
-        Args:
-            analyses: Dictionary containing all analysis results
-            risk_level: Risk level string (LOW, MEDIUM, HIGH)
-            
-        Returns:
-            List of recommendation strings
+        Generate specific recommendations based on detected patterns
         """
         recommendations = []
+        text_patterns = analyses['text_patterns']
+        sentiment_analysis = analyses['sentiment']
+        coherence_analysis = analyses['semantic_coherence']
         
         if risk_level == 'HIGH':
-            recommendations.append("❌ Consider this review with extreme caution")
-            recommendations.append("🔍 Look for similar reviews from other verified users")
-            recommendations.append("📊 Check reviewer's profile and review history")
-            recommendations.append("🚨 This review may be fake or manipulated")
-        
+            recommendations.append("🚨 HIGH RISK: This review is likely fake")
+            recommendations.append("❌ Do not rely on this review for purchasing decisions")
+            recommendations.append("🔍 Look for verified purchase reviews instead")
+            
+            # Specific fake indicators
+            if text_patterns['fake_phrases_count'] > 0.3:
+                recommendations.append("⚠️ Contains common fake review phrases")
+            if text_patterns['spam_keywords'] > 0.4:
+                recommendations.append("🛑 Contains promotional/spam language")
+            if sentiment_analysis['extreme_positive']:
+                recommendations.append("📈 Extremely positive sentiment (fake indicator)")
+            if text_patterns['superlative_density'] > 0.3:
+                recommendations.append("💭 Overuse of superlatives (amazing, perfect, etc.)")
+            
         elif risk_level == 'MEDIUM':
-            recommendations.append("⚠️ Review this content with some caution")
+            recommendations.append("⚠️ MEDIUM RISK: Review has suspicious elements")
             recommendations.append("🔍 Cross-reference with other reviews")
-            recommendations.append("📈 Consider overall product rating trends")
-        
-        else:
-            recommendations.append("✅ Review appears trustworthy and authentic")
+            recommendations.append("📊 Consider overall product rating trends")
+            
+            # Specific warnings
+            if text_patterns['emotional_intensity'] > 0.5:
+                recommendations.append("😲 Unusually emotional language")
+            if text_patterns['repetitive_words'] > 0.3:
+                recommendations.append("🔄 Repetitive word usage")
+            if not coherence_analysis['product_relevance']:
+                recommendations.append("❓ Limited product-specific details")
+                
+        else:  # LOW RISK
+            recommendations.append("✅ LOW RISK: Review appears authentic")
             recommendations.append("📖 Consider this review in your decision making")
-            recommendations.append("👍 Reviewer shows genuine experience patterns")
-        
-        # Specific recommendations based on analysis
-        text_patterns = analyses['text_patterns']
-        if text_patterns['spam_keywords'] > 0.3:
-            recommendations.append("🚫 Contains promotional or spam-like language")
-        
-        if text_patterns['repetitive_words'] > 0.3:
-            recommendations.append("🔄 Uses repetitive language patterns")
-        
-        if analyses['sentiment']['extreme_sentiment']:
-            recommendations.append("😲 Shows extremely positive/negative sentiment")
-        
-        if not analyses['semantic_coherence']['product_relevance']:
-            recommendations.append("❓ Review content may not match the product")
-        
-        if text_patterns['grammar_score'] < 0.5:
-            recommendations.append("✍️ Review contains grammar or spelling issues")
+            recommendations.append("👍 Shows genuine experience patterns")
+            
+            # Positive indicators
+            if coherence_analysis['specificity_score'] > 0.6:
+                recommendations.append("🎯 Contains specific product details")
+            if text_patterns['grammar_score'] > 0.8:
+                recommendations.append("✍️ Well-written with good grammar")
+            if sentiment_analysis['balance_score'] > 0.3:
+                recommendations.append("⚖️ Balanced sentiment (not overly extreme)")
         
         return recommendations
     
     def analyze_review(self, request: ReviewRequest) -> ReviewResponse:
         """
         Main method to analyze a review for authenticity
-        
-        Args:
-            request: ReviewRequest object containing review data
-            
-        Returns:
-            ReviewResponse object with complete analysis results
         """
         try:
             # Perform all analyses
@@ -447,17 +563,53 @@ class FakeReviewDetector:
             )
             
         except Exception as e:
-            # Return a default response in case of error
+            # Provide safe defaults for all required fields
+            from models.review import TextAnalysis, SentimentAnalysis, CoherenceAnalysis, MLAnalysis, DetailedAnalysis, RiskLevel, BadgeColor, BadgeText
+            text_analysis = {
+                'repetitive_words': 0.0,
+                'excessive_punctuation': 0.0,
+                'spam_keywords': 0.0,
+                'grammar_score': 0.5,
+                'length_score': 0.5,
+                'caps_ratio': 0.0,
+                'exclamation_ratio': 0.0,
+                'question_ratio': 0.0,
+                'fake_phrases_count': 0.0,
+                'superlative_density': 0.0,
+                'emotional_intensity': 0.0,
+                'unique_word_ratio': 0.0
+            }
+            sentiment_analysis = {
+                'scores': {'positive': 0.33, 'negative': 0.33, 'neutral': 0.34},
+                'extreme_sentiment': False,
+                'extreme_positive': False,
+                'extreme_negative': False,
+                'dominant_sentiment': 'neutral',
+                'sentiment_variance': 0.0,
+                'confidence': 0.5,
+                'balance_score': 0.5
+            }
+            coherence_analysis = {
+                'coherence_score': 0.5,
+                'product_relevance': False,
+                'topic_consistency': 0.5,
+                'sentence_count': 0,
+                'specificity_score': 0.5
+            }
+            ml_analysis = {
+                'authenticity_score': 0.5,
+                'model_confidence': 0.5
+            }
             return ReviewResponse(
                 confidence_score=0.5,
                 risk_level='MEDIUM',
                 badge_color='yellow',
                 badge_text='WARNING',
                 detailed_analysis={
-                    'text_analysis': {},
-                    'sentiment_analysis': {},
-                    'coherence_analysis': {},
-                    'ml_analysis': {},
+                    'text_analysis': text_analysis,
+                    'sentiment_analysis': sentiment_analysis,
+                    'coherence_analysis': coherence_analysis,
+                    'ml_analysis': ml_analysis,
                     'summary': f'Analysis failed: {str(e)}'
                 },
                 recommendations=['⚠️ Analysis could not be completed, manual review recommended']

@@ -60,6 +60,25 @@ class ApiService {
       throw error;
     }
   }
+
+  async verifyImage(imageFile) {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      const response = await fetch(`${this.baseURL}/verify-image`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to verify image');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Image Verification Error:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();

@@ -17,6 +17,9 @@ export function TrustChecker({ onNavigate }) {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
   const [backendStatus, setBackendStatus] = useState('checking');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageVerification, setImageVerification] = useState(null);
+  const [isVerifyingImage, setIsVerifyingImage] = useState(false);
 
   // Check backend status on component mount
   useEffect(() => {
@@ -78,6 +81,22 @@ export function TrustChecker({ onNavigate }) {
     setProductUrl('');
   };
 
+  const handleImageUpload = async (file) => {
+    setSelectedImage(file);
+    setImageVerification(null);
+    setIsVerifyingImage(true);
+    setError(null);
+    try {
+      const result = await apiService.verifyImage(file);
+      setImageVerification(result);
+    } catch (err) {
+      setError(err.message || 'Failed to verify image. Please try again.');
+      setImageVerification(null);
+    } finally {
+      setIsVerifyingImage(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
       <Header
@@ -113,11 +132,16 @@ export function TrustChecker({ onNavigate }) {
             isAnalyzing={isAnalyzing}
             error={error}
             backendStatus={backendStatus}
+            onImageUpload={handleImageUpload}
+            selectedImage={selectedImage}
           />
         ) : (
           <ResultsSection 
             analysisResult={analysisResult}
             onNewAnalysis={handleNewAnalysis}
+            imageVerification={imageVerification}
+            selectedImage={selectedImage}
+            isVerifyingImage={isVerifyingImage}
           />
         )}
       </div>

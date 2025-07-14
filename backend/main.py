@@ -1,8 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from models.review import ReviewRequest, ReviewResponse
 from core.review_analyzer import FakeReviewDetector
+from PIL import Image
+import io
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -48,6 +50,47 @@ async def analyze_review(request: ReviewRequest):
             status_code=500, 
             detail=f"Internal server error during analysis: {str(e)}"
         )
+
+@app.post("/verify-image")
+async def verify_image(image: UploadFile = File(...)):
+    """
+    Accepts a product image and determines if it is AI-generated or original.
+    Uses lightweight heuristics (placeholder) for now.
+    """
+    try:
+        # Read image bytes
+        contents = await image.read()
+        img = Image.open(io.BytesIO(contents))
+        # Placeholder: check for common AI image signatures (e.g., very high resolution, no EXIF, etc.)
+        exif = img.info.get('exif')
+        width, height = img.size
+        # Simple heuristics (replace with better logic or API as needed)
+        is_ai = False
+        confidence = 0.5
+        message = "No strong AI signature detected."
+        if (width > 2000 or height > 2000) and not exif:
+            is_ai = True
+            confidence = 0.8
+            message = "High resolution and missing EXIF data (common in AI images)."
+        elif not exif:
+            is_ai = True
+            confidence = 0.7
+            message = "Missing EXIF data (possible AI image)."
+        elif width > 3000 or height > 3000:
+            is_ai = True
+            confidence = 0.7
+            message = "Very high resolution (possible AI image)."
+        else:
+            is_ai = False
+            confidence = 0.8
+            message = "Image appears original/authentic."
+        return {
+            "is_ai_generated": is_ai,
+            "confidence": confidence,
+            "message": message
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Image verification failed: {str(e)}")
 
 @app.get("/health")
 async def health_check():
