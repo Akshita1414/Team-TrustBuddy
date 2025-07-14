@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from models.review import ReviewRequest, ReviewResponse
@@ -105,7 +105,7 @@ async def analyze_product_link(request: Request):
                 from selenium import webdriver
                 from selenium.webdriver.chrome.options import Options
                 chrome_options = Options()
-                chrome_options.add_argument('--headless')
+                # chrome_options.add_argument('--headless')
                 chrome_options.add_argument('--no-sandbox')
                 chrome_options.add_argument('--disable-dev-shm-usage')
                 chrome_options.add_argument('--disable-gpu')
@@ -318,6 +318,18 @@ async def analyze_product_link(request: Request):
         }
     except Exception as e:
         return {"detail": f"Error analyzing product link: {str(e)}"}, 500
+
+@app.post("/analyze-product-name")
+async def analyze_product_name(payload: dict = Body(...)):
+    """
+    Analyze a product name for authenticity (fake/genuine detection)
+    """
+    product_name = payload.get("product_name", "")
+    language = payload.get("language", "en")
+    if not product_name or len(product_name.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Product name is too short or empty.")
+    result = detector.analyze_product_name(product_name, language)
+    return result
 
 @app.get("/health")
 async def health_check():

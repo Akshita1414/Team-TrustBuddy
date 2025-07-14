@@ -614,3 +614,35 @@ class FakeReviewDetector:
                 },
                 recommendations=['⚠️ Analysis could not be completed, manual review recommended']
             )
+
+    def analyze_product_name(self, product_name: str, language: str = "en") -> dict:
+        """
+        Analyze product name for fake/genuine detection using simple rules
+        """
+        suspicious_keywords = ["replica", "copy", "fake", "first copy", "duplicate"]
+        genuine_keywords = ["official", "genuine", "authentic", "original", "certified"]
+        name_lower = product_name.lower()
+        if any(word in name_lower for word in suspicious_keywords):
+            return {
+                "confidence_score": 0.1,
+                "risk_level": "HIGH",
+                "badge_color": "red",
+                "badge_text": "RISKY",
+                "summary": "Product name contains suspicious keywords indicating it may be fake or a replica."
+            }
+        elif any(word in name_lower for word in genuine_keywords):
+            return {
+                "confidence_score": 0.9,
+                "risk_level": "LOW",
+                "badge_color": "green",
+                "badge_text": "SAFE",
+                "summary": "Product name contains keywords indicating it is likely genuine."
+            }
+        else:
+            return {
+                "confidence_score": 0.5,
+                "risk_level": "MEDIUM",
+                "badge_color": "yellow",
+                "badge_text": "WARNING",
+                "summary": "Product name does not contain clear indicators of being fake or genuine. Please verify further."
+            }
