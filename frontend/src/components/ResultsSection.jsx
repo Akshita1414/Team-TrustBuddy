@@ -216,7 +216,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-sm text-gray-600">{t('Model Confidence')}</div>
-                <div className="text-lg font-semibold text-blue-600">{Math.round(detailed_analysis.ml_analysis.model_confidence * 100)}%</div>
+                <div className="text-lg font-semibold text-blue-600">{detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + '%' : t('N/A')}</div>
               </div>
             </div>
           </div>
@@ -227,15 +227,15 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Grammar Score')}</span>
-                  <span className="text-green-600 font-semibold">{Math.round(detailed_analysis.text_analysis.grammar_score * 100)}%</span>
+                  <span className="text-green-600 font-semibold">{detailed_analysis?.text_analysis?.grammar_score !== undefined ? Math.round(detailed_analysis.text_analysis.grammar_score * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Length Score')}</span>
-                  <span className="text-blue-600 font-semibold">{Math.round(detailed_analysis.text_analysis.length_score * 100)}%</span>
+                  <span className="text-blue-600 font-semibold">{detailed_analysis?.text_analysis?.length_score !== undefined ? Math.round(detailed_analysis.text_analysis.length_score * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Repetitive Words')}</span>
-                  <span className="text-yellow-600 font-semibold">{Math.round(detailed_analysis.text_analysis.repetitive_words * 100)}%</span>
+                  <span className="text-yellow-600 font-semibold">{detailed_analysis?.text_analysis?.repetitive_words !== undefined ? Math.round(detailed_analysis.text_analysis.repetitive_words * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="mt-4 p-3 bg-purple-50 rounded-lg">
                   <div className="text-sm text-purple-800 font-medium">{t('Analysis Summary:')}</div>
@@ -247,18 +247,26 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Positive Sentiment')}</span>
-                  <span className="text-green-600 font-semibold">{Math.round(detailed_analysis.sentiment_analysis.scores.positive * 100)}%</span>
+                  <span className="text-green-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.positive !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.positive * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Negative Sentiment')}</span>
-                  <span className="text-red-600 font-semibold">{Math.round(detailed_analysis.sentiment_analysis.scores.negative * 100)}%</span>
+                  <span className="text-red-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.negative !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.negative * 100) + '%' : t('N/A')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">{t('Neutral Sentiment')}</span>
+                  <span className="text-gray-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.neutral !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.neutral * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Dominant Sentiment')}</span>
-                  <span className="text-blue-600 font-semibold capitalize">{detailed_analysis.sentiment_analysis.dominant_sentiment}</span>
+                  <span className="text-blue-600 font-semibold capitalize">{detailed_analysis?.sentiment_analysis?.dominant_sentiment ?? t('N/A')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">{t('Extreme Sentiment')}</span>
+                  <span className="text-red-600 font-semibold">{detailed_analysis?.sentiment_analysis?.extreme_sentiment !== undefined ? (detailed_analysis.sentiment_analysis.extreme_sentiment ? t('Yes') : t('No')) : t('N/A')}</span>
                 </div>
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <div className="text-sm text-blue-800 font-medium">{detailed_analysis.sentiment_analysis.extreme_sentiment ? '⚠️ Extreme sentiment detected' : '✅ Balanced sentiment'}</div>
+                  <div className="text-sm text-blue-800 font-medium">{detailed_analysis?.sentiment_analysis?.extreme_sentiment !== undefined ? (detailed_analysis.sentiment_analysis.extreme_sentiment ? '⚠️ Extreme sentiment detected' : '✅ Balanced sentiment') : t('N/A')}</div>
                 </div>
               </div>
             </AnalysisCard>
@@ -266,18 +274,30 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Coherence Score')}</span>
-                  <span className="text-green-600 font-semibold">{Math.round(detailed_analysis.coherence_analysis.coherence_score * 100)}%</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.coherence_score !== undefined ? Math.round(detailed_analysis.coherence_analysis.coherence_score * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Product Relevance')}</span>
-                  <span className={`font-semibold ${detailed_analysis.coherence_analysis.product_relevance ? 'text-green-600' : 'text-red-600'}`}>{detailed_analysis.coherence_analysis.product_relevance ? '✅ Relevant' : '❌ Not Relevant'}</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.product_relevance !== undefined ? (detailed_analysis.coherence_analysis.product_relevance ? t('Yes') : t('No')) : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Topic Consistency')}</span>
-                  <span className="text-blue-600 font-semibold">{detailed_analysis.coherence_analysis.topic_consistency ? Math.round(detailed_analysis.coherence_analysis.topic_consistency * 100) + '%' : 'N/A'}</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.topic_consistency !== undefined ? Math.round(detailed_analysis.coherence_analysis.topic_consistency * 100) + '%' : t('N/A')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">{t('Specificity Score')}</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.specificity_score !== undefined ? Math.round(detailed_analysis.coherence_analysis.specificity_score * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                  <div className="text-sm text-green-800 font-medium">{detailed_analysis.coherence_analysis.coherence_score > 0.7 ? '✅ Good coherence' : detailed_analysis.coherence_analysis.coherence_score > 0.4 ? '⚠️ Moderate coherence' : '❌ Poor coherence'}</div>
+                  <div className="text-sm text-green-800 font-medium">
+                    {detailed_analysis?.coherence_analysis?.coherence_score !== undefined
+                      ? (detailed_analysis.coherence_analysis.coherence_score > 0.7
+                        ? '✅ Good coherence'
+                        : detailed_analysis.coherence_analysis.coherence_score > 0.4
+                        ? '⚠️ Moderate coherence'
+                        : '❌ Poor coherence')
+                      : t('N/A')}
+                  </div>
                 </div>
               </div>
             </AnalysisCard>
@@ -285,18 +305,18 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Authenticity Score')}</span>
-                  <span className="text-green-600 font-semibold">{Math.round(detailed_analysis.ml_analysis.authenticity_score * 100)}%</span>
+                  <span className="text-blue-600 font-semibold">{detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Model Confidence')}</span>
-                  <span className="text-blue-600 font-semibold">{Math.round(detailed_analysis.ml_analysis.model_confidence * 100)}%</span>
+                  <span className="text-blue-600 font-semibold">{detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + '%' : t('N/A')}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Overall Assessment')}</span>
-                  <span className={`font-semibold ${detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'text-green-600' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'text-yellow-600' : 'text-red-600'}`}>{detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'Authentic' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'Suspicious' : 'Fake'}</span>
+                  <span className={`font-semibold ${detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'text-green-600' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'text-yellow-600' : 'text-red-600') : ''}`}>{detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'Authentic' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'Suspicious' : 'Fake') : t('N/A')}</span>
                 </div>
                 <div className="mt-4 p-3 bg-orange-50 rounded-lg">
-                  <div className="text-sm text-orange-800 font-medium">{t('AI Model Prediction:')} {Math.round(detailed_analysis.ml_analysis.authenticity_score * 100)}% {t('authentic')}</div>
+                  <div className="text-sm text-orange-800 font-medium">{t('AI Model Prediction:')} {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')} {t('authentic')}</div>
                 </div>
               </div>
             </AnalysisCard>
@@ -306,12 +326,15 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
             <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('Recommendations')}</h3>
             <div className="space-y-3">
-              {recommendations.map((recommendation, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="text-green-500 mt-1">•</div>
-                  <span className="text-gray-700">{recommendation}</span>
-                </div>
-              ))}
+              {(recommendations && Array.isArray(recommendations) && recommendations.length > 0)
+                ? recommendations.map((recommendation, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="text-green-500 mt-1">•</div>
+                    <span className="text-gray-700">{recommendation}</span>
+                  </div>
+                ))
+                : <div className="text-gray-500">{t('No recommendations available.')}</div>
+              }
             </div>
           </div>
         </>
