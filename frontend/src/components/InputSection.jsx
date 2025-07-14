@@ -18,12 +18,15 @@ export function InputSection({
   onImageUpload, // NEW PROP
   selectedImage, // NEW PROP
   onAnalyzeImage, // NEW PROP
-  isVerifyingImage // NEW PROP
+  isVerifyingImage, // NEW PROP
+  onAnalyzeProductLink, // NEW PROP
+  isAnalyzingProductLink // NEW PROP
 }) {
   const { t } = useLanguage();
 
   const isAnalyzeDisabled = !reviews.trim() || isAnalyzing || backendStatus === 'disconnected';
   const isAnalyzeImageDisabled = !selectedImage || backendStatus === 'disconnected' || isVerifyingImage;
+  const isAnalyzeProductLinkDisabled = !productUrl.trim() || isAnalyzingProductLink || backendStatus === 'disconnected';
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
@@ -52,19 +55,30 @@ export function InputSection({
       )}
       
       <div className="grid md:grid-cols-2 gap-6">
-        {/* URL Input */}
+        {/* Product URL Input */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Product URL (Optional)
+            Product Demo Link (URL)
           </label>
           <input
             type="url"
             value={productUrl}
             onChange={(e) => setProductUrl(e.target.value)}
             placeholder="https://example.com/product"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
+            className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
             disabled={backendStatus === 'disconnected'}
           />
+          <button
+            onClick={onAnalyzeProductLink}
+            disabled={isAnalyzeProductLinkDisabled}
+            className={`mt-4 w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg ${
+              isAnalyzeProductLinkDisabled
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 hover:scale-105'
+            }`}
+          >
+            {isAnalyzingProductLink ? 'Analyzing Product Link...' : 'Analyze Product Link'}
+          </button>
         </div>
 
         {/* Voice Input */}

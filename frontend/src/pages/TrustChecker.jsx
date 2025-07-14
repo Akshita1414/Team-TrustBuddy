@@ -20,6 +20,8 @@ export function TrustChecker({ onNavigate }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageVerification, setImageVerification] = useState(null);
   const [isVerifyingImage, setIsVerifyingImage] = useState(false);
+  const [isAnalyzingProductLink, setIsAnalyzingProductLink] = useState(false);
+  const [productLinkResult, setProductLinkResult] = useState(null);
 
   // Check backend status on component mount
   useEffect(() => {
@@ -104,6 +106,27 @@ export function TrustChecker({ onNavigate }) {
     }
   };
 
+  const handleAnalyzeProductLink = async () => {
+    if (!productUrl.trim()) {
+      setError('Please enter a product URL to analyze');
+      return;
+    }
+    setIsAnalyzingProductLink(true);
+    setError(null);
+    setShowResults(false);
+    setProductLinkResult(null);
+    try {
+      const result = await apiService.analyzeProductLink(productUrl.trim());
+      setProductLinkResult(result);
+      setShowResults(true);
+    } catch (error) {
+      setError(error.message || 'Failed to analyze product link. Please try again.');
+      setProductLinkResult(null);
+    } finally {
+      setIsAnalyzingProductLink(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
       <Header
@@ -143,6 +166,8 @@ export function TrustChecker({ onNavigate }) {
             selectedImage={selectedImage}
             onAnalyzeImage={handleAnalyzeImage}
             isVerifyingImage={isVerifyingImage}
+            onAnalyzeProductLink={handleAnalyzeProductLink}
+            isAnalyzingProductLink={isAnalyzingProductLink}
           />
         ) : (
           <ResultsSection 
@@ -152,6 +177,7 @@ export function TrustChecker({ onNavigate }) {
             selectedImage={selectedImage}
             isVerifyingImage={isVerifyingImage}
             showBackButton={true}
+            productLinkResult={productLinkResult}
           />
         )}
       </div>

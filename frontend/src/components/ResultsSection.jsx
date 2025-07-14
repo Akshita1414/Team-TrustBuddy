@@ -17,8 +17,78 @@ import { useLanguage } from '../context/LanguageContext';
 import { getScoreColor, getBadgeColor, getTrustBadge } from '../utils/trustUtils';
 import { AnalysisCard } from './AnalysisCard';
 
-export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage, showBackButton }) {
+export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage, showBackButton, productLinkResult }) {
   const { t } = useLanguage();
+
+  // Show product link analysis if present
+  if (productLinkResult) {
+    const { product_title, product_description, product_image_url, reviews, image_analysis, summary } = productLinkResult;
+    return (
+      <div className="space-y-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-blue-200 animate-fade-in">
+          <h2 className="text-2xl font-bold text-blue-900 mb-4">Product Link Analysis</h2>
+          <div className="mb-4">
+            <div className="text-lg font-semibold text-gray-800">{product_title}</div>
+            <div className="text-gray-600 mb-2">{product_description}</div>
+            {product_image_url && (
+              <img src={product_image_url} alt="Product" className="h-40 rounded-xl shadow mb-4 border-2 border-blue-200" />
+            )}
+          </div>
+          <div className="mb-4">
+            <h3 className="font-semibold text-blue-700 mb-2">Extracted Reviews</h3>
+            <ul className="list-disc pl-6 space-y-1 text-gray-700">
+              {reviews && reviews.map((rv, idx) => <li key={idx}>{rv}</li>)}
+            </ul>
+          </div>
+          <div className="mb-4">
+            <h3 className="font-semibold text-blue-700 mb-2">Image Authenticity</h3>
+            {image_analysis ? (
+              <div className="p-4 rounded-lg border-2 bg-blue-50 border-blue-200">
+                <div className="font-semibold">Label: <span className={image_analysis.label === 'AI-generated' ? 'text-red-600' : 'text-green-600'}>{image_analysis.label}</span></div>
+                <div>Confidence: <span className="font-semibold">{image_analysis.confidence}%</span></div>
+                <div className="text-gray-700 mt-1">{image_analysis.reason}</div>
+              </div>
+            ) : (
+              <div className="text-gray-500">
+                No image analysis available.
+                {productLinkResult && (
+                  <pre className="text-xs text-red-500 mt-2">{JSON.stringify(productLinkResult, null, 2)}</pre>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="mb-4">
+            <h3 className="font-semibold text-blue-700 mb-2">AI Recommendation</h3>
+            {summary ? (
+              <div className={`p-4 rounded-lg border-2 ${summary.recommendation === 'Buy' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
+                <div className="font-bold text-lg mb-1">
+                  {summary.recommendation === 'Buy' ? <span className="text-green-700">Recommended to Buy</span> : <span className="text-red-700">Not Recommended</span>}
+                </div>
+                <div className="text-gray-700">{summary.reason}</div>
+              </div>
+            ) : (
+              <div className="text-gray-500">
+                No recommendation available.
+                {productLinkResult && (
+                  <pre className="text-xs text-red-500 mt-2">{JSON.stringify(productLinkResult, null, 2)}</pre>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        {showBackButton && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={onNewAnalysis}
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-lg shadow-lg transition-all duration-200"
+            >
+              Back to Input
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // Only show the 'no results' message if neither review nor image result is present
   if (!analysisResult && !imageVerification) {

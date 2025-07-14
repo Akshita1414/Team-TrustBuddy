@@ -1,12 +1,15 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from models.review import ReviewRequest, ReviewResponse
 from core.review_analyzer import FakeReviewDetector
-from PIL import Image
 import io
 import torch
 from transformers import AutoImageProcessor, AutoModelForImageClassification
+from PIL import Image
+import base64
+import re
+import json as pyjson
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -77,6 +80,244 @@ async def verify_image(image: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Image verification failed: {str(e)}")
+
+@app.post("/analyze-product-link")
+async def analyze_product_link(request: Request):
+    import requests as pyrequests
+    from bs4 import BeautifulSoup
+    import bs4
+    import base64
+    import io
+    import re
+    import json as pyjson
+    from PIL import Image
+    try:
+        data = await request.json()
+        product_url = data.get("product_url")
+        if not product_url:
+            return {"detail": "No product URL provided."}, 400
+        # Use a browser-like user agent to fetch the page
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        resp = pyrequests.get(product_url, headers=headers, timeout=15)
+        if resp.status_code != 200 or not resp.text or 'meesho' in product_url:
+            # Fallback to Selenium for JS-heavy or blocked sites
+            try:
+                from selenium import webdriver
+                from selenium.webdriver.chrome.options import Options
+                chrome_options = Options()
+                chrome_options.add_argument('--headless')
+                chrome_options.add_argument('--no-sandbox')
+                chrome_options.add_argument('--disable-dev-shm-usage')
+                chrome_options.add_argument('--disable-gpu')
+                chrome_options.add_argument('--window-size=1920,1080')
+                chrome_options.add_argument(f'user-agent={headers["User-Agent"]}')
+                driver = webdriver.Chrome(options=chrome_options)
+                driver.get(product_url)
+                import time
+                time.sleep(3)  # Wait for JS to load
+                page_source = driver.page_source
+                driver.quit()
+                soup = BeautifulSoup(page_source, "html.parser")
+            except Exception as e:
+                return {"detail": f"URL not reachable (requests+selenium failed): {str(e)}"}, 400
+        else:
+            soup = BeautifulSoup(resp.text, "html.parser")
+        # Initialize variables for Gemini extraction
+        title = ""
+        reviews = []
+        img_url = ""
+        # After fetching soup, get the raw HTML
+        raw_html = str(soup)
+        # Detect 'Access Denied' in the HTML
+        if 'access denied' in raw_html.lower() or 'captcha' in raw_html.lower():
+            return {"detail": "Access Denied by the website. Automated analysis is not possible for this product."}, 400
+        # Use Gemini to extract product info generically
+        GEMINI_API_KEY = "REMOVED"
+        GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+        extraction_prompt = {
+            "text": (
+                "Extract the following from this HTML/text:\n"
+                "- Product title\n"
+                "- Up to 5 customer reviews\n"
+                "- Main product image URL\n"
+                "Return as a JSON object: {\"title\": ..., \"reviews\": [...], \"image_url\": ...}\n"
+                "Here is the HTML/text:\n"
+                f"{raw_html[:12000]}"  # Truncate to avoid token limits
+            )
+        }
+        payload = {"contents": [{"parts": [extraction_prompt]}]}
+        gemini_headers = {
+            "x-goog-api-key": GEMINI_API_KEY,
+            "Content-Type": "application/json"
+        }
+        try:
+            gemini_resp = pyrequests.post(GEMINI_URL, json=payload, headers=gemini_headers, timeout=60)
+            if gemini_resp.status_code == 200:
+                gemini_data = gemini_resp.json()
+                text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
+                match = re.search(r'\{.*\}', text, re.DOTALL)
+                if match:
+                    result = pyjson.loads(match.group(0))
+                    title = result.get("title") or title
+                    reviews = result.get("reviews") or []
+                    img_url = result.get("image_url") or img_url
+        except Exception as e:
+            print("Gemini extraction failed:", str(e))
+        # Fallbacks if Gemini fails
+        if not title:
+            title = soup.title.string.strip() if soup.title and soup.title.string else ""
+        # If Gemini or manual fallback did not extract reviews, try undetected-chromedriver-based review extraction
+        if not reviews or not any(reviews):
+            try:
+                try:
+                    import undetected_chromedriver as uc
+                    chrome_options = uc.ChromeOptions()
+                    chrome_options.add_argument('--headless')
+                    chrome_options.add_argument('--no-sandbox')
+                    chrome_options.add_argument('--disable-dev-shm-usage')
+                    chrome_options.add_argument('--disable-gpu')
+                    chrome_options.add_argument('--window-size=1920,1080')
+                    chrome_options.add_argument(f'user-agent={headers["User-Agent"]}')
+                    driver = uc.Chrome(options=chrome_options)
+                except ImportError:
+                    from selenium import webdriver
+                    from selenium.webdriver.chrome.options import Options
+                    chrome_options = Options()
+                    chrome_options.add_argument('--headless')
+                    chrome_options.add_argument('--no-sandbox')
+                    chrome_options.add_argument('--disable-dev-shm-usage')
+                    chrome_options.add_argument('--disable-gpu')
+                    chrome_options.add_argument('--window-size=1920,1080')
+                    chrome_options.add_argument(f'user-agent={headers["User-Agent"]}')
+                    driver = webdriver.Chrome(options=chrome_options)
+                driver.get(product_url)
+                import time
+                time.sleep(7)  # Wait longer for JS and anti-bot checks
+                page_source = driver.page_source
+                driver.quit()
+                soup2 = BeautifulSoup(page_source, "html.parser")
+                reviews = []
+                # Try common review selectors
+                for tag in ["div", "p", "span"]:
+                    for el in soup2.find_all(tag):
+                        class_attr = el.get("class")
+                        data_testid = el.get("data-testid")
+                        if (class_attr and any("review" in c.lower() for c in class_attr)) or (data_testid and "review" in data_testid.lower()):
+                            text = el.get_text(strip=True)
+                            if text and text not in reviews:
+                                reviews.append(text)
+                        if len(reviews) >= 5:
+                            break
+                    if len(reviews) >= 5:
+                        break
+                if not reviews:
+                    reviews = ["No reviews found."]
+            except Exception as e:
+                reviews = ["No reviews found."]
+        if not img_url:
+            main_img = soup.find("img")
+            if main_img and isinstance(main_img, bs4.element.Tag):
+                src = main_img.get("src")
+                if isinstance(src, str):
+                    img_url = src
+        # Extract description
+        desc = ""
+        desc_tag = soup.find("meta", attrs={"name": "description"})
+        if desc_tag and isinstance(desc_tag, bs4.element.Tag):
+            content = desc_tag.get("content")
+            if isinstance(content, str):
+                desc = content.strip()
+        # Analyze product image with Gemini
+        image_analysis = None
+        if img_url and isinstance(img_url, str):
+            try:
+                img_resp = pyrequests.get(img_url, headers=headers, timeout=10)
+                if img_resp.status_code == 200:
+                    img = Image.open(io.BytesIO(img_resp.content)).convert('RGB')
+                    buf = io.BytesIO()
+                    img.save(buf, format='JPEG')
+                    image_bytes = buf.getvalue()
+                    image_b64 = base64.b64encode(image_bytes).decode('utf-8')
+                    mime_type = 'image/jpeg'
+                    GEMINI_API_KEY = "REMOVED"
+                    GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+                    prompt = {"text": 'Is this image AI-generated or real? Respond in this JSON format: {"label": "AI-generated" or "Real", "confidence": 0-100, "reason": "..."}'}
+                    payload = {
+                        "contents": [{
+                            "parts": [
+                                {
+                                    "inline_data": {
+                                        "mime_type": mime_type,
+                                        "data": image_b64
+                                    }
+                                },
+                                prompt
+                            ]
+                        }]
+                    }
+                    gemini_headers = {
+                        "x-goog-api-key": GEMINI_API_KEY,
+                        "Content-Type": "application/json"
+                    }
+                    gemini_resp = pyrequests.post(GEMINI_URL, json=payload, headers=gemini_headers, timeout=30)
+                    if gemini_resp.status_code == 200:
+                        gemini_data = gemini_resp.json()
+                        text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
+                        match = re.search(r'\{.*\}', text, re.DOTALL)
+                        if match:
+                            result = pyjson.loads(match.group(0))
+                            image_analysis = {
+                                "label": result.get("label"),
+                                "confidence": result.get("confidence"),
+                                "reason": result.get("reason")
+                            }
+                        else:
+                            image_analysis = {"message": "Could not parse Gemini response", "raw_response": text}
+                    else:
+                        image_analysis = {"error": f"Gemini API error: {gemini_resp.text}"}
+            except Exception as e:
+                image_analysis = {"error": str(e)}
+        # Summarize product and reviews with Gemini
+        summary = None
+        try:
+            GEMINI_API_KEY = "REMOVED"
+            GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+            summary_prompt = {"text": f'Given the following product title: "{title}", description: "{desc}", reviews: {reviews}, and image authenticity: {image_analysis}, should a buyer purchase this product? Respond in this JSON format: {{"recommendation": "Buy" or "Do Not Buy", "reason": "..."}}'}
+            payload = {"contents": [{"parts": [summary_prompt]}]}
+            gemini_headers = {
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json"
+            }
+            gemini_resp = pyrequests.post(GEMINI_URL, json=payload, headers=gemini_headers, timeout=30)
+            if gemini_resp.status_code == 200:
+                gemini_data = gemini_resp.json()
+                text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
+                match = re.search(r'\{.*\}', text, re.DOTALL)
+                if match:
+                    result = pyjson.loads(match.group(0))
+                    summary = {
+                        "recommendation": result.get("recommendation"),
+                        "reason": result.get("reason")
+                    }
+                else:
+                    summary = {"message": "Could not parse Gemini response", "raw_response": text}
+            else:
+                summary = {"error": f"Gemini API error: {gemini_resp.text}"}
+        except Exception as e:
+            summary = {"error": str(e)}
+        print("Extracted img_url:", img_url)
+        print("Image analysis result:", image_analysis)
+        print("Summary result:", summary)
+        return {
+            "product_title": title,
+            "product_description": desc,
+            "product_image_url": img_url,
+            "reviews": reviews,
+            "image_analysis": image_analysis,
+            "summary": summary
+        }
+    except Exception as e:
+        return {"detail": f"Error analyzing product link: {str(e)}"}, 500
 
 @app.get("/health")
 async def health_check():
