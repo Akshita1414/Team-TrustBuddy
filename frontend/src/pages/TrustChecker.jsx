@@ -9,10 +9,15 @@ import { AnalysisSection } from '../components/AnalysisSection';
 import { Link, MessageSquare, Image as ImageIcon, Tag, Mic, BarChart3 } from 'lucide-react';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
+import { translations } from '../data/translations';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
+function t(key, lang = 'en') {
+  return translations[lang]?.[key] || translations['en'][key] || key;
+}
+
 export function TrustChecker() {
-  const { t, language } = useLanguage();
+  const { t: contextT, language } = useLanguage();
 
   // Product Link Tab
   const [productUrl, setProductUrl] = useState('');
@@ -357,16 +362,16 @@ export function TrustChecker() {
   // --- Tab Definitions ---
   const tabs = [
     {
-      label: t('Product Link'),
+      label: t('productLink', language),
       icon: Link,
       content: (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Paste Product URL')}</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('pasteUrl', language)}</label>
           <input
             type="url"
             value={productUrl}
             onChange={e => setProductUrl(e.target.value)}
-            placeholder={t('urlPlaceholder')}
+            placeholder={t('urlPlaceholder', language)}
             className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4"
           />
           {isAnalyzingProductLink && (
@@ -382,7 +387,7 @@ export function TrustChecker() {
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 hover:scale-105'}`}
           >
-            {isAnalyzingProductLink ? t('Analyzing Product Link...') : t('Analyze Product Link')}
+            {isAnalyzingProductLink ? t('analyzeProduct', language) + '...' : t('analyzeProduct', language)}
           </button>
           {productLinkError && <div className="mt-4 text-red-600 font-medium">{productLinkError}</div>}
           {productLinkResult && (
@@ -394,18 +399,18 @@ export function TrustChecker() {
       )
     },
     {
-      label: t('Review Text'),
+      label: t('reviewText', language),
       icon: MessageSquare,
       content: (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Enter Review Text')}</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('enterReviews', language)}</label>
           <textarea
             value={reviews}
             onChange={e => setReviews(e.target.value)}
-            placeholder={t('reviewsPlaceholder')}
+            placeholder={t('reviewsPlaceholder', language)}
             className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4 min-h-[100px]"
           />
-          <label className="block text-sm font-semibold text-gray-700 mb-2 mt-2">{t('Product Name Context')}</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2 mt-2">{t('productNameContext', language)}</label>
           <input
             type="text"
             value={productName}
@@ -421,7 +426,7 @@ export function TrustChecker() {
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 hover:scale-105'}`}
           >
-            {isAnalyzingReview ? t('Analyzing...') : t('Analyze Review')}
+            {isAnalyzingReview ? t('analyzeReview', language) + '...' : t('analyzeReview', language)}
           </button>
           {reviewError && <div className="mt-4 text-red-600 font-medium">{reviewError}</div>}
           {reviewResult && (
@@ -433,18 +438,18 @@ export function TrustChecker() {
       )
     },
     {
-      label: t('Product Image'),
+      label: t('productImage', language),
       icon: ImageIcon,
       content: (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Upload Product Image')}</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('uploadImage', language)}</label>
           <input
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
             className="w-full px-4 py-2 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4"
           />
-          <label className="block text-sm font-semibold text-gray-700 mb-2 mt-2">{t('Product Name Context')}</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2 mt-2">{t('productNameContext', language)}</label>
           <input
             type="text"
             value={productName}
@@ -460,7 +465,7 @@ export function TrustChecker() {
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 hover:scale-105'}`}
           >
-            {isVerifyingImage ? t('Analyzing...') : t('Analyze Image')}
+            {isVerifyingImage ? t('analyzeProduct', language) + '...' : t('analyzeProduct', language)}
           </button>
           {imageError && <div className="mt-4 text-red-600 font-medium">{imageError}</div>}
           {imageVerification && (
@@ -472,32 +477,32 @@ export function TrustChecker() {
       )
     },
     {
-      label: t('Product Name'),
+      label: t('productName', language),
       icon: Tag,
       content: (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Enter Product Name (for context)')}</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('enterProductName', language)}</label>
           <input
             type="text"
             value={productName}
             onChange={e => setProductName(e.target.value)}
-            placeholder={t('productNamePlaceholder')}
+            placeholder={t('productNamePlaceholder', language)}
             className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4"
           />
           <div className="mt-4 text-blue-700 bg-blue-50 border border-blue-200 rounded-xl p-4">
-            {t('The product name you enter here will be used as context for review and image analysis. It will not be analyzed directly.')}
+            {t('productNameContextDescription', language)}
           </div>
         </div>
       )
     },
     {
-      label: t('Voice Input'),
+      label: t('voiceInput', language),
       icon: Mic,
       content: (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Speak Product Name or Review')}</label>
-          <div className="mb-2 text-xs text-gray-500">{t('Current language')}: <span className="font-semibold">{language.toUpperCase()}</span></div>
-          <div className="mb-2 text-sm text-blue-700 font-medium">{t('Record your review using your voice.')}</div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('speakProductNameOrReview', language)}</label>
+          <div className="mb-2 text-xs text-gray-500">{t('currentLanguage', language)}: <span className="font-semibold">{language.toUpperCase()}</span></div>
+          <div className="mb-2 text-sm text-blue-700 font-medium">{t('recordYourReviewUsingYourVoice', language)}</div>
           <div className="flex items-center space-x-2 mb-4">
             <button
               onClick={handleVoiceInput}
@@ -508,13 +513,13 @@ export function TrustChecker() {
                   : 'border-blue-200 hover:border-blue-400 text-gray-600'}`}
             >
               <Mic className={`w-5 h-5 ${isVoiceActive ? 'animate-pulse' : ''}`} />
-              <span>{isVoiceActive ? t('Listening...') : t('Tap to speak')}</span>
+              <span>{isVoiceActive ? t('listening', language) : t('tapToSpeak', language)}</span>
             </button>
             <input
               type="text"
               value={voiceText}
               onChange={e => setVoiceText(e.target.value)}
-              placeholder={t('Or type here...')}
+              placeholder={t('orTypeHere', language)}
               className="flex-1 px-4 py-3 border-2 border-blue-100 rounded-xl focus:border-blue-400 focus:outline-none transition-colors"
             />
           </div>
@@ -526,7 +531,7 @@ export function TrustChecker() {
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 hover:scale-105'}`}
           >
-            {t('Analyze Voice Input')}
+            {t('analyzeVoiceInput', language)}
           </button>
           {voiceError && <div className="mt-4 text-red-600 font-medium">{voiceError}</div>}
           {voiceResult && (() => {
@@ -543,13 +548,13 @@ export function TrustChecker() {
             return (
               <div className={`mt-8 rounded-xl p-6 border ${riskColor}`}>
                 <div className="font-bold text-lg text-purple-700">
-                  {voiceResult.confidence_score !== undefined ? `${Math.round(voiceResult.confidence_score * 100)}% ${t('Confidence')}` : ''}
+                  {voiceResult.confidence_score !== undefined ? `${Math.round(voiceResult.confidence_score * 100)}% ${t('confidence', language)}` : ''}
                 </div>
                 <div className="text-gray-700 mt-2 space-y-2">
                   {typeof voiceResult === 'object' && !Array.isArray(voiceResult) ? (
                     Object.entries(voiceResult).map(([key, value]) => (
                       <div key={key}>
-                        <span className="font-semibold">{t(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</span>{' '}
+                        <span className="font-semibold">{t(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), language)}:</span>{' '}
                         {typeof value === 'object' && value !== null
                           ? <pre className="bg-gray-100 rounded p-2 overflow-x-auto text-xs">{JSON.stringify(value, null, 2)}</pre>
                           : String(value)}
@@ -644,33 +649,33 @@ export function TrustChecker() {
           className="self-end mb-2 px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow transition-all"
           style={{ maxWidth: 180 }}
         >
-          Clear History
+          {t('clearHistory', language)}
         </button>
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[350px]">
             <div className="flex gap-8 mb-8">
               <div className="bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center">
                 <Pie data={emptyPieData} style={{ width: 180, height: 180 }} />
-                <div className="text-gray-500 mt-2">Risk Level Distribution</div>
+                <div className="text-gray-500 mt-2">{t('riskLevelDistribution', language)}</div>
               </div>
               <div className="bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center">
                 <Line data={emptyLineData} style={{ width: 220, height: 180 }} />
-                <div className="text-gray-500 mt-2">Confidence Score Trend</div>
+                <div className="text-gray-500 mt-2">{t('confidenceScoreTrend', language)}</div>
               </div>
             </div>
-            <div className="text-lg text-gray-400 font-medium mt-4">No analysis history yet.<br/>Your results will appear here after your first analysis!</div>
+            <div className="text-lg text-gray-400 font-medium mt-4">{t('noAnalysisHistoryYet', language)}<br/>{t('yourResultsWillAppearHereAfterYourFirstAnalysis', language)}</div>
           </div>
         ) : (
           <>
-            <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 0, alignSelf: 'flex-start' }}>Your Review History & Analytics</h3>
+            <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 0, alignSelf: 'flex-start' }}>{t('yourReviewHistoryAndAnalytics', language)}</h3>
             <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
               <div style={{ width: 320, minWidth: 260, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Pie data={pieData} style={{ width: '100%', maxWidth: 220 }} />
-                <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Risk Level Distribution</div>
+                <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>{t('riskLevelDistribution', language)}</div>
               </div>
               <div style={{ flex: 1, minWidth: 340, maxWidth: 600, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Line data={lineData} style={{ width: '100%', maxWidth: 500 }} plugins={[ChartDataLabels]} options={lineOptions} />
-                <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Confidence Score Trend</div>
+                <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>{t('confidenceScoreTrend', language)}</div>
               </div>
             </div>
             <div style={{ background: '#f8fafc', borderRadius: 16, boxShadow: '0 2px 8px #0001', padding: 24, marginTop: 0, overflowX: 'auto', minWidth: 320 }}>
@@ -678,9 +683,9 @@ export function TrustChecker() {
                 <thead>
                   <tr style={{ background: '#f1f5f9' }}>
                     <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>#</th>
-                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Review</th>
-                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Confidence</th>
-                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Risk</th>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>{t('review', language)}</th>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>{t('confidence', language)}</th>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>{t('risk', language)}</th>
                   </tr>
                 </thead>
                 <tbody>
