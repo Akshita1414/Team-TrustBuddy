@@ -6,7 +6,7 @@ import { Header } from '../components/Header';
 import { ResultsSection } from '../components/ResultsSection';
 import { TabbedInterface } from '../components/TabbedInterface';
 import { AnalysisSection } from '../components/AnalysisSection';
-import { Link, MessageSquare, Image as ImageIcon, Tag, Mic } from 'lucide-react';
+import { Link, MessageSquare, Image as ImageIcon, Tag, Mic, BarChart3 } from 'lucide-react';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 export function TrustChecker() {
@@ -59,7 +59,11 @@ export function TrustChecker() {
   const confidenceScores = [];
   const labels = [];
   history.forEach((item, idx) => {
-    const risk = item.result?.risk_level || 'SAFE';
+    let risk = (item.result?.risk_level || 'SAFE').toUpperCase();
+    // Normalize risk levels
+    if (risk === 'HIGH' || risk === 'RISKY') risk = 'RISKY';
+    else if (risk === 'LOW' || risk === 'SAFE') risk = 'SAFE';
+    else if (risk === 'MEDIUM' || risk === 'WARNING') risk = 'WARNING';
     if (riskCounts[risk] !== undefined) riskCounts[risk]++;
     confidenceScores.push(item.result?.confidence_score || 0);
     labels.push(`Review ${idx + 1}`);
@@ -83,6 +87,31 @@ export function TrustChecker() {
       {
         label: 'Confidence Score',
         data: confidenceScores,
+        fill: false,
+        borderColor: '#3b82f6',
+        backgroundColor: '#3b82f6',
+        tension: 0.2,
+      },
+    ],
+  };
+
+  const emptyPieData = {
+    labels: ['SAFE', 'WARNING', 'RISKY'],
+    datasets: [
+      {
+        label: 'Risk Level',
+        data: [0, 0, 0],
+        backgroundColor: ['#22c55e', '#facc15', '#ef4444'],
+        borderWidth: 1,
+      },
+    ],
+  };
+  const emptyLineData = {
+    labels: ['No Data'],
+    datasets: [
+      {
+        label: 'Confidence Score',
+        data: [0],
         fill: false,
         borderColor: '#3b82f6',
         backgroundColor: '#3b82f6',
@@ -275,6 +304,11 @@ export function TrustChecker() {
             placeholder={t('urlPlaceholder')}
             className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors mb-4"
           />
+          {isAnalyzingProductLink && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 font-medium text-center animate-pulse">
+              This can take some time! Please wait...
+            </div>
+          )}
           <button
             onClick={handleAnalyzeProductLink}
             disabled={!productUrl.trim() || isAnalyzingProductLink}
@@ -528,66 +562,103 @@ export function TrustChecker() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <TabbedInterface tabs={tabs} />
       </div>
-      {username && history.length > 0 && (
-        <div style={{ margin: '32px auto', padding: 0, maxWidth: 1100, display: 'flex', flexDirection: 'column', gap: 32 }}>
-          <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 0, alignSelf: 'flex-start' }}>Your Review History & Analytics</h3>
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <div style={{ width: 320, minWidth: 260, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Pie data={pieData} style={{ width: '100%', maxWidth: 220 }} />
-              <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Risk Level Distribution</div>
+      <div style={{ margin: '32px auto', padding: 0, maxWidth: 1100, display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <button
+          onClick={async () => {
+            if (username) {
+              try {
+                await fetch('http://localhost:8000/user/clear-history', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ username })
+                });
+              } catch (e) { /* Optionally show error */ }
+            }
+            setHistory([]);
+          }}
+          className="self-end mb-2 px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow transition-all"
+          style={{ maxWidth: 180 }}
+        >
+          Clear History
+        </button>
+        {history.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[350px]">
+            <div className="flex gap-8 mb-8">
+              <div className="bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center">
+                <Pie data={emptyPieData} style={{ width: 180, height: 180 }} />
+                <div className="text-gray-500 mt-2">Risk Level Distribution</div>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center">
+                <Line data={emptyLineData} style={{ width: 220, height: 180 }} />
+                <div className="text-gray-500 mt-2">Confidence Score Trend</div>
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: 340, maxWidth: 600, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Line data={lineData} style={{ width: '100%', maxWidth: 500 }} />
-              <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Confidence Score Trend</div>
+            <div className="text-lg text-gray-400 font-medium mt-4">No analysis history yet.<br/>Your results will appear here after your first analysis!</div>
+          </div>
+        ) : (
+          <>
+            <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 0, alignSelf: 'flex-start' }}>Your Review History & Analytics</h3>
+            <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div style={{ width: 320, minWidth: 260, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Pie data={pieData} style={{ width: '100%', maxWidth: 220 }} />
+                <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Risk Level Distribution</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 340, maxWidth: 600, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Line data={lineData} style={{ width: '100%', maxWidth: 500 }} />
+                <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Confidence Score Trend</div>
+              </div>
             </div>
-          </div>
-          <div style={{ background: '#f8fafc', borderRadius: 16, boxShadow: '0 2px 8px #0001', padding: 24, marginTop: 0, overflowX: 'auto', minWidth: 320 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f1f5f9' }}>
-                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>#</th>
-                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Review</th>
-                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Confidence</th>
-                  <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Risk Level</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((item, idx) => {
-                  let confidence = "N/A";
-                  let risk = "SAFE";
-                  let reviewText = item.review || item.product_url || item.image || "";
-
-                  if (item.type === "product_image") {
-                    confidence = item.result?.confidence !== undefined
-                      ? (item.result.confidence * 100).toFixed(1) + "%"
-                      : "N/A";
-                    risk = item.result?.is_ai_generated ? "HIGH" : "LOW";
-                  } else if (item.result) {
-                    confidence = item.result.confidence_score !== undefined
-                      ? (item.result.confidence_score * 100).toFixed(1) + "%"
-                      : "N/A";
-                    risk = item.result.risk_level || "SAFE";
-                  }
-
-                  return (
-                    <tr key={idx}>
-                      <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>{idx + 1}</td>
-                      <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{reviewText}</td>
-                      <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>{confidence}</td>
-                      <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                        <span style={{
-                          color: risk === 'LOW' ? '#22c55e' : risk === 'MEDIUM' ? '#facc15' : '#ef4444',
-                          fontWeight: 600
-                        }}>{risk}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+            <div style={{ background: '#f8fafc', borderRadius: 16, boxShadow: '0 2px 8px #0001', padding: 24, marginTop: 0, overflowX: 'auto', minWidth: 320 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9' }}>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>#</th>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Review</th>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Confidence</th>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Risk / Recommendation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((item, idx) => {
+                    let confidence = "N/A";
+                    let risk = "SAFE";
+                    let reviewText = item.review || item.product_url || item.image || "";
+                    // Product link entry
+                    if (item.product_url && item.result && typeof item.result.final_confidence_score === 'number') {
+                      confidence = (item.result.final_confidence_score * 100).toFixed(1) + "%";
+                      // Try to get risk from summary or fallback
+                      risk = item.result.summary?.recommendation || item.result.risk_level || "SAFE";
+                    } else if (item.type === "product_image") {
+                      confidence = item.result?.confidence !== undefined
+                        ? (item.result.confidence * 100).toFixed(1) + "%"
+                        : "N/A";
+                      risk = item.result?.is_ai_generated ? "HIGH" : "LOW";
+                    } else if (item.result) {
+                      confidence = item.result.confidence_score !== undefined
+                        ? (item.result.confidence_score * 100).toFixed(1) + "%"
+                        : "N/A";
+                      risk = item.result.risk_level || "SAFE";
+                    }
+                    return (
+                      <tr key={idx}>
+                        <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>{idx + 1}</td>
+                        <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{reviewText}</td>
+                        <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>{confidence}</td>
+                        <td style={{ padding: 10, border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                          <span style={{
+                            color: risk === 'Buy' || risk === 'BUY' ? '#22c55e' : risk === 'LOW' ? '#22c55e' : risk === 'MEDIUM' ? '#facc15' : risk === 'SAFE' ? '#22c55e' : '#ef4444',
+                            fontWeight: 600
+                          }}>{(risk === 'SAFE' && confidence === 'N/A') ? 'N/A' : risk}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

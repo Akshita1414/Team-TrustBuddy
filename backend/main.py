@@ -51,6 +51,17 @@ def get_history(username: str):
         raise HTTPException(status_code=404, detail="User not found.")
     return {"history": user.get("history", [])}
 
+@app.post("/user/clear-history")
+def clear_history(payload: dict):
+    username = payload.get("username")
+    if not username:
+        return {"detail": "Username required."}, 400
+    user = get_user(username)
+    if not user:
+        return {"detail": "User not found."}, 404
+    users_collection.update_one({"username": username}, {"$set": {"history": []}})
+    return {"message": "History cleared."}
+
 # Update analyze_review to save to user history if username is provided
 @app.post("/analyze-review", response_model=ReviewResponse)
 async def analyze_review(request: ReviewRequest, username: Optional[str] = None):
@@ -336,13 +347,42 @@ async def analyze_product_link(request: Request):
         print("Extracted img_url:", img_url)
         print("Image analysis result:", image_analysis)
         print("Summary result:", summary)
+        # --- Review Confidence Analysis ---
+        review_confidence = None
+        if reviews and isinstance(reviews, list):
+            review_scores = []
+            for rv in reviews[:3]:  # Limit to 3 reviews for speed
+                try:
+                    req = ReviewRequest(review_text=rv)
+                    res = detector.analyze_review(req)
+                    review_scores.append(res.confidence_score)
+                except Exception:
+                    continue
+            if review_scores:
+                review_confidence = sum(review_scores) / len(review_scores)
+        # --- Image Confidence ---
+        image_confidence = None
+        if image_analysis and isinstance(image_analysis, dict):
+            conf = image_analysis.get('confidence')
+            if isinstance(conf, (int, float)):
+                image_confidence = conf
+        # --- Final Confidence Score ---
+        final_confidence_score = None
+        if review_confidence is not None and image_confidence is not None:
+            final_confidence_score = (review_confidence + image_confidence) / 2
+        elif review_confidence is not None:
+            final_confidence_score = review_confidence
+        elif image_confidence is not None:
+            final_confidence_score = image_confidence
+        # ---
         return {
             "product_title": title,
             "product_description": desc,
             "product_image_url": img_url,
             "reviews": reviews,
             "image_analysis": image_analysis,
-            "summary": summary
+            "summary": summary,
+            "final_confidence_score": final_confidence_score
         }
     except Exception as e:
         return {"detail": f"Error analyzing product link: {str(e)}"}, 500

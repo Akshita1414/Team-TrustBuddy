@@ -29,6 +29,39 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
 
   // Show product link analysis if present
   if (productLinkResult) {
+    // Handle anti-bot/CAPTCHA/blocked site errors
+    const errorDetail = (Array.isArray(productLinkResult) && productLinkResult[0]?.detail) ? productLinkResult[0].detail : productLinkResult.detail;
+    const isBlocked = errorDetail && (
+      /access denied|url not reachable|captcha|anti-bot|blocked|not possible/i.test(errorDetail)
+    );
+    if (isBlocked) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[300px] p-8">
+          <div className="text-2xl font-bold text-blue-900 mb-4">Coming Soon...</div>
+          <div className="text-lg text-gray-700 mb-2 text-center">We currently do not support real-time analysis for this platform.</div>
+          <div className="font-semibold text-gray-800 mt-4 mb-1">Why?</div>
+          <div className="text-gray-600 text-center max-w-xl mb-4">
+            Some websites use strict anti-bot mechanisms such as CAPTCHA and request blocking, which prevent us from securely and reliably fetching review or product data.
+          </div>
+          <div className="text-blue-700 font-medium mb-4">We’re actively working on a solution to support these platforms soon. Stay tuned!</div>
+          <div className="text-gray-700 text-center mb-2">You can still manually analyze reviews for this product.</div>
+          <button
+            className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition-all"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                // Find the tab button by its text content
+                const buttons = Array.from(document.querySelectorAll('button'));
+                const reviewTabBtn = buttons.find(btn => btn.textContent.trim() === 'Review Text');
+                if (reviewTabBtn) reviewTabBtn.click();
+                else window.location.hash = '#review-text';
+              }
+            }}
+          >
+            Go to Review Text Tab
+          </button>
+        </div>
+      );
+    }
     const { product_title, product_description, product_image_url, reviews, image_analysis, summary } = productLinkResult;
     return (
       <div className="space-y-8">
@@ -37,8 +70,15 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
           <div className="mb-4">
             <div className="text-lg font-semibold text-gray-800">{product_title}</div>
             <div className="text-gray-600 mb-2">{product_description}</div>
-            {product_image_url && (
-              <img src={product_image_url} alt="Product" className="h-40 rounded-xl shadow mb-4 border-2 border-blue-200" />
+            {product_image_url ? (
+              <img 
+                src={product_image_url} 
+                alt="Product" 
+                className="h-40 rounded-xl shadow mb-4 border-2 border-blue-200"
+                onError={e => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentNode.appendChild(document.createTextNode('Product image not available.')); }}
+              />
+            ) : (
+              <div className="text-gray-400 italic mb-4">Product image not available.</div>
             )}
           </div>
           <div className="mb-4">
@@ -52,7 +92,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             {image_analysis ? (
               <div className="p-4 rounded-lg border-2 bg-blue-50 border-blue-200">
                 <div className="font-semibold">Label: <span className={image_analysis.label === 'AI-generated' ? 'text-red-600' : 'text-green-600'}>{image_analysis.label}</span></div>
-                <div>Confidence: <span className="font-semibold">{image_analysis.confidence}%</span></div>
+                <div>Confidence: <span className="font-semibold">{typeof image_analysis.confidence === 'number' ? `${Math.round(image_analysis.confidence * 100)}%` : 'N/A'}</span></div>
                 <div className="text-gray-700 mt-1">{image_analysis.reason}</div>
               </div>
             ) : (
@@ -66,6 +106,19 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
           </div>
           <div className="mb-4">
             <h3 className="font-semibold text-blue-700 mb-2">{t('AI Recommendation')}</h3>
+            {typeof productLinkResult?.final_confidence_score === 'number' && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-900 font-semibold text-center">
+                Final Confidence Score: {Math.round(productLinkResult.final_confidence_score * 100)}%
+                {(() => {
+                  const hasReview = Array.isArray(productLinkResult.reviews) && productLinkResult.reviews.length > 0;
+                  const imageConf = productLinkResult.image_analysis && typeof productLinkResult.image_analysis.confidence === 'number' && productLinkResult.image_analysis.confidence > 0;
+                  if (hasReview && imageConf) return ' (average of reviews and image)';
+                  if (hasReview) return ' (based on reviews)';
+                  if (imageConf) return ' (based on image)';
+                  return '';
+                })()}
+              </div>
+            )}
             {summary ? (
               <div className={`p-4 rounded-lg border-2 ${summary.recommendation === 'Buy' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
                 <div className="font-bold text-lg mb-1">
