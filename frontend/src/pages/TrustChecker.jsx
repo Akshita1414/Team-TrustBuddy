@@ -8,6 +8,7 @@ import { TabbedInterface } from '../components/TabbedInterface';
 import { AnalysisSection } from '../components/AnalysisSection';
 import { Link, MessageSquare, Image as ImageIcon, Tag, Mic, BarChart3 } from 'lucide-react';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { API_CONFIG } from '../config';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 export function TrustChecker() {
@@ -49,7 +50,7 @@ export function TrustChecker() {
     const user = localStorage.getItem('username');
     setUsername(user);
     if (user) {
-      fetch(`http://localhost:8000/user/history?username=${user}`)
+      fetch(`${API_CONFIG.BASE_URL}/user/history?username=${user}`)
         .then(res => res.json())
         .then(data => setHistory(data.history || []));
     }
@@ -173,8 +174,8 @@ export function TrustChecker() {
     setProductLinkResult(null);
     try {
       const url = username
-        ? `http://localhost:8000/analyze-product-link?username=${encodeURIComponent(username)}`
-        : 'http://localhost:8000/analyze-product-link';
+        ? `${API_CONFIG.BASE_URL}/analyze-product-link?username=${encodeURIComponent(username)}`
+        : `${API_CONFIG.BASE_URL}/analyze-product-link`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -209,7 +210,7 @@ export function TrustChecker() {
     setReviewError(null);
     setReviewResult(null);
     try {
-      const res = await fetch(`http://localhost:8000/analyze-review?username=${username}`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/analyze-review?username=${username}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ review_text: reviews })
@@ -235,13 +236,15 @@ export function TrustChecker() {
 
   // Product Image
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    setSelectedImage(file);
+    setSelectedImage(e.target.files[0]);
     setImageVerification(null);
     setImageError(null);
   };
   const handleAnalyzeImage = async () => {
-    if (!selectedImage) return;
+    if (!selectedImage) {
+      setImageError('Please upload an image to verify');
+      return;
+    }
     setIsVerifyingImage(true);
     setImageError(null);
     setImageVerification(null);
@@ -249,22 +252,22 @@ export function TrustChecker() {
       const formData = new FormData();
       formData.append('image', selectedImage);
       const url = username
-        ? `http://localhost:8000/verify-image?username=${encodeURIComponent(username)}`
-        : 'http://localhost:8000/verify-image';
+        ? `${API_CONFIG.BASE_URL}/verify-image?username=${encodeURIComponent(username)}`
+        : `${API_CONFIG.BASE_URL}/verify-image`;
       const res = await fetch(url, {
         method: 'POST',
         body: formData
       });
       if (!res.ok) {
         const data = await res.json();
-        setImageError(data.detail || 'Analysis failed');
+        setImageError(data.detail || 'Image verification failed');
         setIsVerifyingImage(false);
         return;
       }
       const result = await res.json();
       setImageVerification(result);
       setHistory(prev => [
-        { type: 'product_image', image: selectedImage.name, result },
+        { type: 'product_image', result },
         ...prev
       ]);
       setIsVerifyingImage(false);
@@ -315,7 +318,7 @@ export function TrustChecker() {
     setVoiceError(null);
     setVoiceResult(null);
     try {
-      const res = await fetch(`http://localhost:8000/analyze-review?username=${username}`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/analyze-review?username=${username}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ review_text: voiceText })
@@ -614,7 +617,7 @@ export function TrustChecker() {
           onClick={async () => {
             if (username) {
               try {
-                await fetch('http://localhost:8000/user/clear-history', {
+                await fetch(`${API_CONFIG.BASE_URL}/user/clear-history`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ username })

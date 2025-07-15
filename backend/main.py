@@ -13,6 +13,7 @@ from typing import Optional
 import os
 
 from dotenv import load_dotenv
+from gradio_client import Client, handle_file
 
 load_dotenv()
 
@@ -101,28 +102,22 @@ async def analyze_review(request: ReviewRequest, username: Optional[str] = None)
 @app.post("/verify-image")
 async def verify_image(image: UploadFile = File(...), username: Optional[str] = None):
     try:
-        import requests
         contents = await image.read()
-        img = Image.open(io.BytesIO(contents)).convert('RGB')
-        HF_API_TOKEN = os.environ.get("HF_API_TOKEN_IMAGE")
-        HF_API_URL = "https://api-inference.huggingface.co/models/prithivMLmods/open-deepfake-detection"
-        hf_headers = {
-            "Authorization": f"Bearer {HF_API_TOKEN}"
-        }
-        response = requests.post(HF_API_URL, headers=hf_headers, data=contents, timeout=60)
-        if response.status_code == 200:
-            result = response.json()
-            if isinstance(result, list) and all('label' in r and 'score' in r for r in result):
-                best = max(result, key=lambda r: r['score'])
-                image_analysis = {
-                    "label": best['label'],
-                    "confidence": float(best['score']),
-                    "reason": f"Hugging Face model prediction: {best['label']} with confidence {round(best['score']*100, 1)}%"
-                }
-            else:
-                image_analysis = {"error": "Unexpected Hugging Face API response", "raw_response": result, "confidence": 0.0}
-        else:
-            image_analysis = {"error": f"Hugging Face API error: {response.text}", "confidence": 0.0}
+        # Save the uploaded image to a temporary file
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            tmp.write(contents)
+            tmp_path = tmp.name
+        # Use gradio_client to call your Space
+        client = Client("Akshita1414/Image_Hugging_Face")
+        result = client.predict(
+            img=handle_file(tmp_path),
+            api_name="/predict"
+        )
+        # Optionally, clean up the temp file
+        import os
+        os.remove(tmp_path)
+        image_analysis = result
     except Exception as e:
         image_analysis = {"error": str(e), "confidence": 0.0}
     return image_analysis
@@ -218,7 +213,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                 try:
                     import undetected_chromedriver as uc
                     chrome_options = uc.ChromeOptions()
-                    # chrome_options.add_argument('--headless')
+                    chrome_options.add_argument('--headless')
                     chrome_options.add_argument('--no-sandbox')
                     chrome_options.add_argument('--disable-dev-shm-usage')
                     chrome_options.add_argument('--disable-gpu')
@@ -229,7 +224,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                     from selenium import webdriver
                     from selenium.webdriver.chrome.options import Options
                     chrome_options = Options()
-                    # chrome_options.add_argument('--headless')
+                    chrome_options.add_argument('--headless')
                     chrome_options.add_argument('--no-sandbox')
                     chrome_options.add_argument('--disable-dev-shm-usage')
                     chrome_options.add_argument('--disable-gpu')

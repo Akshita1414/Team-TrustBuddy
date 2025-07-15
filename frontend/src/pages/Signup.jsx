@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_CONFIG } from '../config';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
@@ -11,7 +12,7 @@ const Signup = () => {
     setError('');
     setSuccess('');
     try {
-      const res = await fetch('http://localhost:8000/signup', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
