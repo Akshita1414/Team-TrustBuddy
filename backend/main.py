@@ -35,7 +35,11 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Only allow frontend origin
+    allow_origins=[
+        "http://localhost:3000",
+        "https://trustbuddy-frontend.onrender.com",
+        "https://trustbuddy-backend.onrender.com"
+    ],  # Allow both local and deployed frontend origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

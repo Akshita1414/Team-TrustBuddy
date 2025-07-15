@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:8000',
+  BASE_URL: 'https://trustbuddy-backend.onrender.com',
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3
 };
