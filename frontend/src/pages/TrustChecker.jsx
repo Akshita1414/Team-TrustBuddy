@@ -7,6 +7,7 @@ import { ResultsSection } from '../components/ResultsSection';
 import { TabbedInterface } from '../components/TabbedInterface';
 import { AnalysisSection } from '../components/AnalysisSection';
 import { Link, MessageSquare, Image as ImageIcon, Tag, Mic, BarChart3 } from 'lucide-react';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 export function TrustChecker() {
@@ -59,16 +60,26 @@ export function TrustChecker() {
   const confidenceScores = [];
   const labels = [];
   history.forEach((item, idx) => {
-    let risk = (item.result?.risk_level || 'SAFE').toUpperCase();
-    // Normalize risk levels
-    if (risk === 'HIGH' || risk === 'RISKY') risk = 'RISKY';
-    else if (risk === 'LOW' || risk === 'SAFE') risk = 'SAFE';
-    else if (risk === 'MEDIUM' || risk === 'WARNING') risk = 'WARNING';
+    let conf = undefined;
+    if (item.type === 'product_image') {
+      conf = item.result?.confidence;
+    } else if (item.result?.final_confidence_score !== undefined) {
+      conf = item.result.final_confidence_score;
+    } else if (item.result?.confidence_score !== undefined) {
+      conf = item.result.confidence_score;
+    }
+    // Clamp confidence between 0 and 1
+    if (typeof conf !== 'number' || isNaN(conf)) conf = 0;
+    conf = Math.max(0, Math.min(1, conf));
+    let risk = 'SAFE';
+    if (conf <= 0.3) risk = 'RISKY';
+    else if (conf <= 0.6) risk = 'WARNING';
+    else risk = 'SAFE';
     if (riskCounts[risk] !== undefined) riskCounts[risk]++;
-    confidenceScores.push(item.result?.confidence_score || 0);
+    confidenceScores.push(conf);
     labels.push(`Review ${idx + 1}`);
   });
-
+  // Always use [SAFE, WARNING, RISKY] order for colors and data
   const pieData = {
     labels: ['SAFE', 'WARNING', 'RISKY'],
     datasets: [
@@ -91,8 +102,38 @@ export function TrustChecker() {
         borderColor: '#3b82f6',
         backgroundColor: '#3b82f6',
         tension: 0.2,
+        datalabels: {
+          display: true,
+          align: 'top',
+          color: '#1e40af',
+          font: { weight: 'bold' },
+          formatter: (value) => `${Math.round(value * 100)}%`
+        }
       },
     ],
+  };
+  const lineOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: true },
+      datalabels: {
+        display: true,
+        font: { weight: 'bold', size: 16 },
+        color: '#1e40af',
+        align: 'top',
+        formatter: (value) => `${Math.round(value * 100)}%`
+      }
+    },
+    scales: {
+      y: {
+        min: 0,
+        max: 1,
+        ticks: {
+          callback: function(value) { return Math.round(value * 100) + '%'; },
+          font: { size: 14 }
+        }
+      }
+    }
   };
 
   const emptyPieData = {
@@ -131,7 +172,10 @@ export function TrustChecker() {
     setProductLinkError(null);
     setProductLinkResult(null);
     try {
-      const res = await fetch(`http://localhost:8000/analyze-product-link?username=${username}`, {
+      const url = username
+        ? `http://localhost:8000/analyze-product-link?username=${encodeURIComponent(username)}`
+        : 'http://localhost:8000/analyze-product-link';
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_url: productUrl })
@@ -204,7 +248,10 @@ export function TrustChecker() {
     try {
       const formData = new FormData();
       formData.append('image', selectedImage);
-      const res = await fetch(`http://localhost:8000/verify-image?username=${username}`, {
+      const url = username
+        ? `http://localhost:8000/verify-image?username=${encodeURIComponent(username)}`
+        : 'http://localhost:8000/verify-image';
+      const res = await fetch(url, {
         method: 'POST',
         body: formData
       });
@@ -604,7 +651,7 @@ export function TrustChecker() {
                 <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Risk Level Distribution</div>
               </div>
               <div style={{ flex: 1, minWidth: 340, maxWidth: 600, background: '#f9fafb', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px #0001', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Line data={lineData} style={{ width: '100%', maxWidth: 500 }} />
+                <Line data={lineData} style={{ width: '100%', maxWidth: 500 }} plugins={[ChartDataLabels]} options={lineOptions} />
                 <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500 }}>Confidence Score Trend</div>
               </div>
             </div>

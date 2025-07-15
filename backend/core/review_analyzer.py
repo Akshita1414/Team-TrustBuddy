@@ -448,23 +448,23 @@ class FakeReviewDetector:
         """
         Determine risk level and badge based on confidence score
         """
-        if confidence_score >= 0.6:  # Lowered threshold for authentic
+        if confidence_score >= 0.6:
             return {
-                'risk_level': 'LOW',
+                'risk_level': 'SAFE',
                 'badge_color': 'green',
                 'badge_text': 'SAFE',
                 'description': 'Review appears genuine and trustworthy'
             }
         elif confidence_score >= 0.3:
             return {
-                'risk_level': 'MEDIUM',
+                'risk_level': 'WARNING',
                 'badge_color': 'yellow',
                 'badge_text': 'WARNING',
                 'description': 'Review has suspicious elements, verify carefully'
             }
         else:
             return {
-                'risk_level': 'HIGH',
+                'risk_level': 'RISKY',
                 'badge_color': 'red',
                 'badge_text': 'RISKY',
                 'description': 'Review likely fake or heavily manipulated'
@@ -527,7 +527,7 @@ class FakeReviewDetector:
         Main method to analyze a review for authenticity
         """
         try:
-            # Perform all analyses
+            # Perform all analyses except fake detection
             analyses = {
                 'text_patterns': self.analyze_text_patterns(request.review_text),
                 'sentiment': self.analyze_sentiment(request.review_text),
@@ -535,28 +535,45 @@ class FakeReviewDetector:
                     request.review_text, 
                     request.product_name
                 ),
-                'ml_prediction': self.get_ml_prediction(request.review_text)
+                # Use Hugging Face Inference API for fake review detection
+                'ml_prediction': self.hf_fake_review_detection(request.review_text)
             }
             
             # Calculate confidence score
             confidence_score = self.calculate_confidence_score(analyses)
-            
+
             # Get risk level and badge
             risk_info = self.get_risk_level_and_badge(confidence_score)
-            
+
+            # Map risk_level to 'LOW', 'MEDIUM', 'HIGH' for Pydantic model
+            risk_map = {'SAFE': 'LOW', 'WARNING': 'MEDIUM', 'RISKY': 'HIGH'}
+            risk_level = risk_map.get(risk_info['risk_level'], 'MEDIUM')
+
+            # Ensure ml_analysis fields are present
+            ml_pred = analyses['ml_prediction']
+            if isinstance(ml_pred, dict) and 'score' in ml_pred:
+                authenticity_score = ml_pred['score']
+                model_confidence = ml_pred['score']
+            else:
+                authenticity_score = 0.0
+                model_confidence = 0.0
+
             # Generate recommendations
             recommendations = self.generate_recommendations(analyses, risk_info['risk_level'])
-            
+
             return ReviewResponse(
                 confidence_score=round(confidence_score, 3),
-                risk_level=risk_info['risk_level'],
+                risk_level=risk_level,
                 badge_color=risk_info['badge_color'],
                 badge_text=risk_info['badge_text'],
                 detailed_analysis={
                     'text_analysis': analyses['text_patterns'],
                     'sentiment_analysis': analyses['sentiment'],
                     'coherence_analysis': analyses['semantic_coherence'],
-                    'ml_analysis': analyses['ml_prediction'],
+                    'ml_analysis': {
+                        'authenticity_score': authenticity_score,
+                        'model_confidence': model_confidence
+                    },
                     'summary': risk_info['description']
                 },
                 recommendations=recommendations
@@ -614,6 +631,34 @@ class FakeReviewDetector:
                 },
                 recommendations=['⚠️ Analysis could not be completed, manual review recommended']
             )
+
+    def hf_fake_review_detection(self, text: str) -> dict:
+        """
+        Use Hugging Face Inference API for fake review detection (martin-ha/toxic-comment-model)
+        """
+        import requests
+        HF_API_TOKEN = "REMOVED"
+        HF_API_URL = "https://api-inference.huggingface.co/models/martin-ha/toxic-comment-model"
+        headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
+        payload = {"inputs": text}
+        try:
+            response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=30)
+            if response.status_code == 200:
+                result = response.json()
+                # result is a list of list of dicts: [[{'label': 'toxic', 'score': ...}, ...]]
+                if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
+                    best = max(result[0], key=lambda r: r['score'])
+                    return {
+                        'label': best['label'],
+                        'score': float(best['score']),
+                        'raw': result
+                    }
+                else:
+                    return {'error': 'Unexpected Hugging Face API response', 'raw': result}
+            else:
+                return {'error': f'Hugging Face API error: {response.text}'}
+        except Exception as e:
+            return {'error': str(e)}
 
     def analyze_product_name(self, product_name: str, language: str = "en") -> dict:
         """

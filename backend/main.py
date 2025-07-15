@@ -96,7 +96,7 @@ async def analyze_review(request: ReviewRequest, username: Optional[str] = None)
         )
 
 @app.post("/verify-image")
-async def verify_image(image: UploadFile = File(...)):
+async def verify_image(image: UploadFile = File(...), username: Optional[str] = None):
     try:
         contents = await image.read()
         img = Image.open(io.BytesIO(contents)).convert('RGB')
@@ -112,16 +112,23 @@ async def verify_image(image: UploadFile = File(...)):
             is_ai = bool(torch.argmax(probs).item())
             confidence = float(probs[1].item()) if is_ai else float(probs[0].item())
         message = "AI-generated image detected." if is_ai else "Image appears original/authentic."
-        return {
+        result = {
             "is_ai_generated": is_ai,
             "confidence": confidence,
             "message": message
         }
+        # Save to user history if username is provided
+        if username:
+            users_collection.update_one(
+                {"username": username},
+                {"$push": {"history": {"image": image.filename, "result": result}}}
+            )
+        return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Image verification failed: {str(e)}")
 
 @app.post("/analyze-product-link")
-async def analyze_product_link(request: Request):
+async def analyze_product_link(request: Request, username: Optional[str] = None):
     import requests as pyrequests
     from bs4 import BeautifulSoup
     import bs4
@@ -266,56 +273,40 @@ async def analyze_product_link(request: Request):
             content = desc_tag.get("content")
             if isinstance(content, str):
                 desc = content.strip()
-        # Analyze product image with Gemini
+        # Analyze product image with Hugging Face Inference API
         image_analysis = None
         if img_url and isinstance(img_url, str):
             try:
                 img_resp = pyrequests.get(img_url, headers=headers, timeout=10)
                 if img_resp.status_code == 200:
-                    img = Image.open(io.BytesIO(img_resp.content)).convert('RGB')
-                    buf = io.BytesIO()
-                    img.save(buf, format='JPEG')
-                    image_bytes = buf.getvalue()
-                    image_b64 = base64.b64encode(image_bytes).decode('utf-8')
-                    mime_type = 'image/jpeg'
-                    GEMINI_API_KEY = "REMOVED"
-                    GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-                    prompt = {"text": 'Is this image AI-generated or real? Respond in this JSON format: {"label": "AI-generated" or "Real", "confidence": 0-100, "reason": "..."}'}
-                    payload = {
-                        "contents": [{
-                            "parts": [
-                                {
-                                    "inline_data": {
-                                        "mime_type": mime_type,
-                                        "data": image_b64
-                                    }
-                                },
-                                prompt
-                            ]
-                        }]
+                    image_bytes = img_resp.content
+                    HF_API_TOKEN = "REMOVED"
+                    HF_API_URL = "https://api-inference.huggingface.co/models/prithivMLmods/open-deepfake-detection"
+                    hf_headers = {
+                        "Authorization": f"Bearer {HF_API_TOKEN}"
                     }
-                    gemini_headers = {
-                        "x-goog-api-key": GEMINI_API_KEY,
-                        "Content-Type": "application/json"
-                    }
-                    gemini_resp = pyrequests.post(GEMINI_URL, json=payload, headers=gemini_headers, timeout=30)
-                    if gemini_resp.status_code == 200:
-                        gemini_data = gemini_resp.json()
-                        text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
-                        match = re.search(r'\{.*\}', text, re.DOTALL)
-                        if match:
-                            result = pyjson.loads(match.group(0))
+                    response = pyrequests.post(HF_API_URL, headers=hf_headers, data=image_bytes, timeout=60)
+                    if response.status_code == 200:
+                        result = response.json()
+                        # The model returns a list of dicts with 'label' and 'score'
+                        # Example: [{"label": "REAL", "score": 0.87}, {"label": "FAKE", "score": 0.13}]
+                        if isinstance(result, list) and all('label' in r and 'score' in r for r in result):
+                            # Find the label with the highest score
+                            best = max(result, key=lambda r: r['score'])
                             image_analysis = {
-                                "label": result.get("label"),
-                                "confidence": result.get("confidence"),
-                                "reason": result.get("reason")
+                                "label": best['label'],
+                                "confidence": float(best['score']),
+                                "reason": f"Hugging Face model prediction: {best['label']} with confidence {round(best['score']*100, 1)}%"
                             }
                         else:
-                            image_analysis = {"message": "Could not parse Gemini response", "raw_response": text}
+                            image_analysis = {"error": "Unexpected Hugging Face API response", "raw_response": result, "confidence": 0.0}
                     else:
-                        image_analysis = {"error": f"Gemini API error: {gemini_resp.text}"}
+                        image_analysis = {"error": f"Hugging Face API error: {response.text}", "confidence": 0.0}
             except Exception as e:
-                image_analysis = {"error": str(e)}
+                image_analysis = {"error": str(e), "confidence": 0.0}
+        # If image_analysis is still None, ensure it is a dict with confidence 0.0
+        if image_analysis is None:
+            image_analysis = {"label": None, "confidence": 0.0, "reason": "No image analysis performed."}
         # Summarize product and reviews with Gemini
         summary = None
         try:
@@ -375,7 +366,7 @@ async def analyze_product_link(request: Request):
         elif image_confidence is not None:
             final_confidence_score = image_confidence
         # ---
-        return {
+        response_data = {
             "product_title": title,
             "product_description": desc,
             "product_image_url": img_url,
@@ -384,6 +375,13 @@ async def analyze_product_link(request: Request):
             "summary": summary,
             "final_confidence_score": final_confidence_score
         }
+        # Save to user history if username is provided
+        if username:
+            users_collection.update_one(
+                {"username": username},
+                {"$push": {"history": {"product_url": product_url, "result": response_data}}}
+            )
+        return response_data
     except Exception as e:
         return {"detail": f"Error analyzing product link: {str(e)}"}, 500
 
