@@ -10,6 +10,7 @@ import { Link, MessageSquare, Image as ImageIcon, Tag, Mic, BarChart3 } from 'lu
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
 import { translations } from '../data/translations';
+import PriceComparisonTab from './PriceComparisonTab';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 function t(key, lang = 'en') {
@@ -570,6 +571,11 @@ export function TrustChecker() {
         </div>
       )
     },
+    {
+      label: t('Price Comparison', language),
+      icon: BarChart3,
+      content: <PriceComparisonTab />
+    },
   ];
 
   // Group history by type
@@ -693,7 +699,41 @@ export function TrustChecker() {
                     let confidence = "N/A";
                     let risk = "SAFE";
                     let reviewText = item.review || item.product_url || item.image || "";
-                    if (item.type === "product_image") {
+                    // Alternate products entry
+                    if (item.type === "alternate_products") {
+                      reviewText = (
+                        <div>
+                          <div style={{fontWeight:600, color:'#3b82f6'}}>Alternate Products Search</div>
+                          <div><b>Product:</b> {item.product_name} <b>Max Price:</b> ₹{item.max_price}</div>
+                          {item.alternates && item.alternates.length > 0 ? (
+                            <ul style={{margin:'6px 0', paddingLeft:18}}>
+                              {item.alternates.slice(0,2).map((alt, i) => (
+                                <li key={i}>
+                                  <b>{alt.name}</b> - ₹{alt.price} ({alt.retailer}) <a href={alt.link} target="_blank" rel="noopener noreferrer" style={{color:'#2563eb'}}>View</a>
+                                </li>
+                              ))}
+                              {item.alternates.length > 2 && <li>...and {item.alternates.length - 2} more</li>}
+                            </ul>
+                          ) : item.raw_answer ? (
+                            <div style={{fontStyle:'italic', color:'#64748b', fontSize:13}}>{item.raw_answer.slice(0,120)}{item.raw_answer.length>120?'...':''}</div>
+                          ) : (
+                            <div style={{color:'#ef4444'}}>No alternates found.</div>
+                          )}
+                        </div>
+                      );
+                      confidence = "-";
+                      risk = "-";
+                    } else if (item.type === "price_comparison") {
+                      reviewText = (
+                        <div>
+                          <div style={{fontWeight:600, color:'#f59e42'}}>Price Comparison</div>
+                          <div><b>Product:</b> {item.product_name}</div>
+                          <div style={{fontStyle:'italic', color:'#64748b', fontSize:13}}>{item.summary ? item.summary.slice(0,120)+(item.summary.length>120?'...':'') : 'No summary.'}</div>
+                        </div>
+                      );
+                      confidence = "-";
+                      risk = "-";
+                    } else if (item.type === "product_image") {
                       // Try to show image URL or a placeholder
                       if (item.result && item.result.image_url) {
                         reviewText = item.result.image_url;
@@ -728,7 +768,7 @@ export function TrustChecker() {
                           <span style={{
                             color: risk === 'Buy' || risk === 'BUY' ? '#22c55e' : risk === 'LOW' ? '#22c55e' : risk === 'MEDIUM' ? '#facc15' : risk === 'SAFE' ? '#22c55e' : '#ef4444',
                             fontWeight: 600
-                          }}>{(risk === 'SAFE' && confidence === 'N/A') ? 'N/A' : risk}</span>
+                          }}>{(risk === 'SAFE' && confidence === 'N/A') ? '-' : risk}</span>
                         </td>
                       </tr>
                     );

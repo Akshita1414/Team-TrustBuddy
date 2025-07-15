@@ -11,6 +11,7 @@ from pymongo import MongoClient
 from models.user import UserSignup, UserLogin
 from typing import Optional
 import os
+import requests
 
 from dotenv import load_dotenv
 from gradio_client import Client, handle_file
@@ -411,6 +412,127 @@ def login(user: UserLogin):
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
     return {"message": "Login successful.", "username": user.username}
+
+@app.post("/compare-prices")
+async def compare_prices(payload: dict = Body(...)):
+    product_name = payload.get("product_name")
+    username = payload.get("username")
+    if not product_name:
+        return {"error": "Product name required."}
+    api_key = os.getenv("TAVILY_API_KEY")
+    tavily_prompt = f"Is the price of {product_name} inflated in India? Give a brief summary."
+    response = requests.post(
+        "https://api.tavily.com/search",
+        headers={"Content-Type": "application/json"},
+        json={
+            "api_key": api_key,
+            "query": tavily_prompt,
+            "search_depth": "basic",
+            "include_answer": True
+        },
+        timeout=15
+    )
+    data = response.json()
+    summary = data.get("answer") or data.get("summary") or "No insight available."
+    # Save to user history if username is provided
+    if username:
+        from datetime import datetime
+        users_collection.update_one(
+            {"username": username},
+            {"$push": {"history": {
+                "type": "price_comparison",
+                "product_name": product_name,
+                "summary": summary,
+                "timestamp": datetime.utcnow().isoformat()
+            }}}
+        )
+    return {"summary": summary}
+
+@app.post("/recommend-alternates")
+async def recommend_alternates(payload: dict = Body(...)):
+    product_name = payload.get("product_name")
+    max_price = payload.get("max_price")
+    username = payload.get("username")
+    if not product_name or not max_price:
+        return {"error": "Product name and max_price required."}
+    api_key = os.getenv("TAVILY_API_KEY")
+    retailers = [
+        "meesho", "flipkart", "amazon", "croma", "reliance", "vijay", "tatacliq", "snapdeal", "shopclues", "paytm mall", "paytmmall", "jiomart", "spencers", "bigbasket", "grofers", "nykaa", "myntra", "ajio"
+    ]
+    prompt = (
+        f"Find alternate products to {product_name} available in India under ₹{max_price} with better value or discounts. "
+        "Return a simple, numbered list of alternates. For each, include: Product name, Price, Retailer, and Link (if available). "
+        "Prioritize Meesho and local Indian e-commerce sites, but include any good deals. "
+        "If you can't find all details, provide as much as possible."
+    )
+    response = requests.post(
+        "https://api.tavily.com/search",
+        headers={"Content-Type": "application/json"},
+        json={
+            "api_key": api_key,
+            "query": prompt,
+            "search_depth": "basic",
+            "include_answer": True
+        },
+        timeout=20
+    )
+    data = response.json()
+    alternates = []
+    answer = data.get("answer") or data.get("summary") or ""
+    import re
+    from datetime import datetime
+    try:
+        max_price_val = float(max_price)
+    except:
+        max_price_val = None
+    alt_pattern = re.compile(r"([\w\s\-\+]+)[\s\:\|\-]+₹?(\d+[,.]?\d*)[\s\:\|\-]+([\w\s]+)[\s\:\|\-]+(https?://\S+)", re.IGNORECASE)
+    for match in alt_pattern.finditer(answer):
+        name, price, retailer, link = match.groups()
+        try:
+            price_val = float(price.replace(",", ""))
+        except:
+            price_val = None
+        if price_val is not None and max_price_val is not None and price_val < max_price_val:
+            if max_price_val > 0:
+                ratio = price_val / max_price_val
+                if ratio <= 0.4:
+                    score = 5
+                elif ratio <= 0.6:
+                    score = 4
+                elif ratio <= 0.8:
+                    score = 3
+                elif ratio <= 0.95:
+                    score = 2
+                else:
+                    score = 1
+            else:
+                score = 1
+            alternates.append({
+                "name": name.strip(),
+                "price": price_val,
+                "retailer": retailer.strip(),
+                "link": link.strip(),
+                "price_score": score
+            })
+    alternates.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
+    # Save to user history if username is provided
+    if username:
+        users_collection.update_one(
+            {"username": username},
+            {"$push": {"history": {
+                "type": "alternate_products",
+                "product_name": product_name,
+                "max_price": max_price,
+                "alternates": alternates,
+                "raw_answer": answer,
+                "timestamp": datetime.utcnow().isoformat()
+            }}}
+        )
+    if not alternates and answer.strip():
+        return {"alternates": [], "raw_answer": answer}
+    if not alternates and not answer.strip():
+        return {"alternates": [], "raw_answer": ""}
+    return {"alternates": alternates, "raw_answer": answer}
 
 @app.get("/health")
 async def health_check():
