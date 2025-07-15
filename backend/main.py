@@ -13,9 +13,15 @@ import json as pyjson
 from pymongo import MongoClient
 from models.user import UserSignup, UserLogin
 from typing import Optional
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # MongoDB Atlas connection
-MONGO_URL = "REMOVED"
+MONGO_URL = os.getenv("MONGO_URL")
 client = MongoClient(MONGO_URL)
 db = client["trustbuddy"]
 users_collection = db["users"]
@@ -178,7 +184,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
         if 'access denied' in raw_html.lower() or 'captcha' in raw_html.lower():
             return {"detail": "Access Denied by the website. Automated analysis is not possible for this product."}, 400
         # Use Gemini to extract product info generically
-        GEMINI_API_KEY = "REMOVED"
+        GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
         GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
         extraction_prompt = {
             "text": (
@@ -218,7 +224,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                 try:
                     import undetected_chromedriver as uc
                     chrome_options = uc.ChromeOptions()
-                    chrome_options.add_argument('--headless')
+                    # chrome_options.add_argument('--headless')
                     chrome_options.add_argument('--no-sandbox')
                     chrome_options.add_argument('--disable-dev-shm-usage')
                     chrome_options.add_argument('--disable-gpu')
@@ -229,7 +235,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                     from selenium import webdriver
                     from selenium.webdriver.chrome.options import Options
                     chrome_options = Options()
-                    chrome_options.add_argument('--headless')
+                    # chrome_options.add_argument('--headless')
                     chrome_options.add_argument('--no-sandbox')
                     chrome_options.add_argument('--disable-dev-shm-usage')
                     chrome_options.add_argument('--disable-gpu')
@@ -280,7 +286,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                 img_resp = pyrequests.get(img_url, headers=headers, timeout=10)
                 if img_resp.status_code == 200:
                     image_bytes = img_resp.content
-                    HF_API_TOKEN = "REMOVED"
+                    HF_API_TOKEN = os.environ.get("HF_API_TOKEN_IMAGE")
                     HF_API_URL = "https://api-inference.huggingface.co/models/prithivMLmods/open-deepfake-detection"
                     hf_headers = {
                         "Authorization": f"Bearer {HF_API_TOKEN}"
@@ -310,7 +316,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
         # Summarize product and reviews with Gemini
         summary = None
         try:
-            GEMINI_API_KEY = "REMOVED"
+            GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
             GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
             summary_prompt = {"text": f'Given the following product title: "{title}", description: "{desc}", reviews: {reviews}, and image authenticity: {image_analysis}, should a buyer purchase this product? Respond in this JSON format: {{"recommendation": "Buy" or "Do Not Buy", "reason": "..."}}'}
             payload = {"contents": [{"parts": [summary_prompt]}]}

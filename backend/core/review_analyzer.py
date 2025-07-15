@@ -14,6 +14,7 @@ from textblob import TextBlob
 import requests
 import json
 from models.review import ReviewRequest, ReviewResponse
+import os
 
 # Download required NLTK data
 try:
@@ -636,8 +637,7 @@ class FakeReviewDetector:
         """
         Use Hugging Face Inference API for fake review detection (martin-ha/toxic-comment-model)
         """
-        import requests
-        HF_API_TOKEN = "REMOVED"
+        HF_API_TOKEN = os.environ.get("HF_API_TOKEN_TEXT")
         HF_API_URL = "https://api-inference.huggingface.co/models/martin-ha/toxic-comment-model"
         headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
         payload = {"inputs": text}

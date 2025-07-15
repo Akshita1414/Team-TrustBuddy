@@ -358,7 +358,13 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Authenticity Score')}</span>
-                  <span className="text-blue-600 font-semibold">{detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')}</span>
+                  <span className={
+                    detailed_analysis?.ml_analysis?.authenticity_score > 0.7 ? 'text-green-600 font-semibold' :
+                    detailed_analysis?.ml_analysis?.authenticity_score > 0.4 ? 'text-yellow-600 font-semibold' :
+                    'text-red-600 font-semibold'
+                  }>
+                    {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Model Confidence')}</span>
@@ -368,8 +374,8 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                   <span className="text-gray-600">{t('Overall Assessment')}</span>
                   <span className={`font-semibold ${detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'text-green-600' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'text-yellow-600' : 'text-red-600') : ''}`}>{detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'Authentic' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'Suspicious' : 'Fake') : t('N/A')}</span>
                 </div>
-                <div className="mt-4 p-3 bg-orange-50 rounded-lg">
-                  <div className="text-sm text-orange-800 font-medium">{t('AI Model Prediction:')} {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')} {t('authentic')}</div>
+                <div className={`mt-4 px-3 py-1 rounded-xl text-sm font-semibold ${detailed_analysis?.ml_analysis?.authenticity_score > 0.7 ? 'bg-green-50 text-green-700' : detailed_analysis?.ml_analysis?.authenticity_score > 0.4 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'}`}>
+                  {t('AI Model Prediction:')} {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')} {t('authentic')}
                 </div>
               </div>
             </AnalysisCard>

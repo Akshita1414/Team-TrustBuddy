@@ -662,7 +662,7 @@ export function TrustChecker() {
                     <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>#</th>
                     <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Review</th>
                     <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Confidence</th>
-                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Risk / Recommendation</th>
+                    <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Risk</th>
                   </tr>
                 </thead>
                 <tbody>
