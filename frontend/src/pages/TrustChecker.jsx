@@ -62,23 +62,33 @@ export function TrustChecker() {
   const labels = [];
   history.forEach((item, idx) => {
     let conf = undefined;
+    let risk = 'SAFE';
     if (item.type === 'product_image') {
-      conf = item.result?.confidence;
+      // For image, use is_ai_generated to set risk
+      if (item.result?.is_ai_generated) {
+        risk = 'RISKY';
+        conf = item.result?.confidence;
+      } else {
+        risk = 'SAFE';
+        conf = item.result?.confidence;
+      }
     } else if (item.result?.final_confidence_score !== undefined) {
       conf = item.result.final_confidence_score;
+      if (conf <= 0.3) risk = 'RISKY';
+      else if (conf <= 0.6) risk = 'WARNING';
+      else risk = 'SAFE';
     } else if (item.result?.confidence_score !== undefined) {
       conf = item.result.confidence_score;
+      if (conf <= 0.3) risk = 'RISKY';
+      else if (conf <= 0.6) risk = 'WARNING';
+      else risk = 'SAFE';
     }
     // Clamp confidence between 0 and 1
     if (typeof conf !== 'number' || isNaN(conf)) conf = 0;
     conf = Math.max(0, Math.min(1, conf));
-    let risk = 'SAFE';
-    if (conf <= 0.3) risk = 'RISKY';
-    else if (conf <= 0.6) risk = 'WARNING';
-    else risk = 'SAFE';
     if (riskCounts[risk] !== undefined) riskCounts[risk]++;
     confidenceScores.push(conf);
-    labels.push(`Review ${idx + 1}`);
+    labels.push(item.type === 'product_image' ? `Image ${idx + 1}` : `Review ${idx + 1}`);
   });
   // Always use [SAFE, WARNING, RISKY] order for colors and data
   const pieData = {
@@ -264,7 +274,12 @@ export function TrustChecker() {
         setIsVerifyingImage(false);
         return;
       }
-      const result = await res.json();
+      let result = await res.json();
+      // Ensure is_ai_generated is set for frontend logic
+      if (typeof result.is_ai_generated === 'undefined') {
+        const label = (result.label || '').toLowerCase();
+        result.is_ai_generated = label.includes('fake') || label.includes('ai');
+      }
       setImageVerification(result);
       setHistory(prev => [
         { type: 'product_image', result },
@@ -673,6 +688,16 @@ export function TrustChecker() {
                     let confidence = "N/A";
                     let risk = "SAFE";
                     let reviewText = item.review || item.product_url || item.image || "";
+                    if (item.type === "product_image") {
+                      // Try to show image URL or a placeholder
+                      if (item.result && item.result.image_url) {
+                        reviewText = item.result.image_url;
+                      } else if (item.result && item.result.url) {
+                        reviewText = item.result.url;
+                      } else {
+                        reviewText = "[Image]";
+                      }
+                    }
                     // Product link entry
                     if (item.product_url && item.result && typeof item.result.final_confidence_score === 'number') {
                       confidence = (item.result.final_confidence_score * 100).toFixed(1) + "%";

@@ -118,6 +118,12 @@ async def verify_image(image: UploadFile = File(...), username: Optional[str] = 
         import os
         os.remove(tmp_path)
         image_analysis = result
+        # Save to user history if username is provided
+        if username:
+            users_collection.update_one(
+                {"username": username},
+                {"$push": {"history": {"type": "product_image", "result": image_analysis}}}
+            )
     except Exception as e:
         image_analysis = {"error": str(e), "confidence": 0.0}
     return image_analysis
