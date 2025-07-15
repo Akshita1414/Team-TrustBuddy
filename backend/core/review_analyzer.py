@@ -2,8 +2,6 @@ import re
 import statistics
 from datetime import datetime
 from typing import Dict, List, Optional
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
-import torch
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -28,23 +26,6 @@ class ReviewAnalyzer:
     """Core analyzer class that initializes ML models and patterns"""
     
     def __init__(self):
-        # Initialize sentiment analysis pipeline
-        self.sentiment_analyzer = pipeline(
-            "sentiment-analysis",
-            model="distilbert-base-uncased-finetuned-sst-2-english",
-            return_all_scores=True
-        )
-        
-        # Initialize fake review detection model (using a pre-trained model)
-        try:
-            self.fake_detector = pipeline(
-                "text-classification",
-                model="martin-ha/toxic-comment-model",
-                return_all_scores=True
-            )
-        except:
-            self.fake_detector = None
-        
         # Enhanced spam/fake patterns with more specificity
         self.spam_patterns = [
             r'\b(amazing|perfect|excellent|fantastic|incredible|outstanding|phenomenal|spectacular)\b.*\b(amazing|perfect|excellent|fantastic|incredible|outstanding|phenomenal|spectacular)\b',
@@ -200,59 +181,17 @@ class FakeReviewDetector:
         """
         Enhanced sentiment analysis focusing on fake patterns
         """
-        try:
-            sentiment_results = self.analyzer.sentiment_analyzer(text)[0]
-            
-            sentiment_scores = {}
-            for result in sentiment_results:
-                label = result['label'].lower()
-                if 'positive' in label:
-                    sentiment_scores['positive'] = result['score']
-                elif 'negative' in label:
-                    sentiment_scores['negative'] = result['score']
-                else:
-                    sentiment_scores['neutral'] = result['score']
-            
-            # Get the dominant sentiment and its confidence
-            dominant_sentiment = max(sentiment_scores.keys(), key=lambda k: sentiment_scores[k])
-            max_score = max(sentiment_scores.values())
-            
-            # More nuanced extreme sentiment detection
-            # Extremely positive reviews (>95% confidence) are often fake
-            extreme_positive = (dominant_sentiment == 'positive' and max_score > 0.95)
-            
-            # Extremely negative reviews can also be fake, but less common
-            extreme_negative = (dominant_sentiment == 'negative' and max_score > 0.98)
-            
-            extreme_sentiment = extreme_positive or extreme_negative
-            
-            # Calculate sentiment variance
-            sentiment_variance = float(np.var(list(sentiment_scores.values())))
-            
-            # Balanced sentiment is more authentic
-            balance_score = 1.0 - max_score  # Lower when sentiment is extreme
-            
-            return {
-                'scores': sentiment_scores,
-                'extreme_sentiment': extreme_sentiment,
-                'extreme_positive': extreme_positive,
-                'extreme_negative': extreme_negative,
-                'dominant_sentiment': dominant_sentiment,
-                'sentiment_variance': sentiment_variance,
-                'confidence': max_score,
-                'balance_score': balance_score
-            }
-        except Exception as e:
-            return {
-                'scores': {'positive': 0.33, 'negative': 0.33, 'neutral': 0.34},
-                'extreme_sentiment': False,
-                'extreme_positive': False,
-                'extreme_negative': False,
-                'dominant_sentiment': 'neutral',
-                'sentiment_variance': 0.0,
-                'confidence': 0.5,
-                'balance_score': 0.5
-            }
+        # Dummy sentiment analysis for now (replace with API if needed)
+        return {
+            'scores': {'positive': 0.33, 'negative': 0.33, 'neutral': 0.34},
+            'extreme_sentiment': False,
+            'extreme_positive': False,
+            'extreme_negative': False,
+            'dominant_sentiment': 'neutral',
+            'sentiment_variance': 0.0,
+            'confidence': 0.5,
+            'balance_score': 0.5
+        }
     
     def analyze_semantic_coherence(self, text: str, product_name: str = None) -> Dict:
         """
@@ -330,27 +269,7 @@ class FakeReviewDetector:
         """
         Get ML model prediction for review authenticity
         """
-        if not self.analyzer.fake_detector:
-            return {'authenticity_score': 0.5, 'model_confidence': 0.5}
-        
-        try:
-            ml_result = self.analyzer.fake_detector(text)
-            if ml_result and len(ml_result) > 0:
-                # Assuming the model returns toxicity score
-                for result in ml_result:
-                    if result['label'] == 'TOXIC':
-                        toxicity_score = result['score']
-                        break
-                else:
-                    toxicity_score = 0.5
-                
-                return {
-                    'authenticity_score': max(0.1, 1 - toxicity_score),
-                    'model_confidence': toxicity_score
-                }
-        except Exception as e:
-            pass
-        
+        # Dummy ML prediction for now (replace with API if needed)
         return {'authenticity_score': 0.5, 'model_confidence': 0.5}
     
     def calculate_confidence_score(self, analyses: Dict) -> float:

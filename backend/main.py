@@ -4,10 +4,7 @@ import uvicorn
 from models.review import ReviewRequest, ReviewResponse
 from core.review_analyzer import FakeReviewDetector
 import io
-import torch
-from transformers import AutoImageProcessor, AutoModelForImageClassification
 from PIL import Image
-import base64
 import re
 import json as pyjson
 from pymongo import MongoClient
@@ -104,34 +101,31 @@ async def analyze_review(request: ReviewRequest, username: Optional[str] = None)
 @app.post("/verify-image")
 async def verify_image(image: UploadFile = File(...), username: Optional[str] = None):
     try:
+        import requests
         contents = await image.read()
         img = Image.open(io.BytesIO(contents)).convert('RGB')
-        model_name = "prithivMLmods/open-deepfake-detection"
-        processor = AutoImageProcessor.from_pretrained(model_name)
-        model = AutoModelForImageClassification.from_pretrained(model_name)
-        model.eval()
-        inputs = processor(images=img, return_tensors="pt")
-        with torch.no_grad():
-            outputs = model(**inputs)
-            logits = outputs.logits
-            probs = torch.softmax(logits, dim=1).squeeze()
-            is_ai = bool(torch.argmax(probs).item())
-            confidence = float(probs[1].item()) if is_ai else float(probs[0].item())
-        message = "AI-generated image detected." if is_ai else "Image appears original/authentic."
-        result = {
-            "is_ai_generated": is_ai,
-            "confidence": confidence,
-            "message": message
+        HF_API_TOKEN = os.environ.get("HF_API_TOKEN_IMAGE")
+        HF_API_URL = "https://api-inference.huggingface.co/models/prithivMLmods/open-deepfake-detection"
+        hf_headers = {
+            "Authorization": f"Bearer {HF_API_TOKEN}"
         }
-        # Save to user history if username is provided
-        if username:
-            users_collection.update_one(
-                {"username": username},
-                {"$push": {"history": {"image": image.filename, "result": result}}}
-            )
-        return result
+        response = requests.post(HF_API_URL, headers=hf_headers, data=contents, timeout=60)
+        if response.status_code == 200:
+            result = response.json()
+            if isinstance(result, list) and all('label' in r and 'score' in r for r in result):
+                best = max(result, key=lambda r: r['score'])
+                image_analysis = {
+                    "label": best['label'],
+                    "confidence": float(best['score']),
+                    "reason": f"Hugging Face model prediction: {best['label']} with confidence {round(best['score']*100, 1)}%"
+                }
+            else:
+                image_analysis = {"error": "Unexpected Hugging Face API response", "raw_response": result, "confidence": 0.0}
+        else:
+            image_analysis = {"error": f"Hugging Face API error: {response.text}", "confidence": 0.0}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Image verification failed: {str(e)}")
+        image_analysis = {"error": str(e), "confidence": 0.0}
+    return image_analysis
 
 @app.post("/analyze-product-link")
 async def analyze_product_link(request: Request, username: Optional[str] = None):
