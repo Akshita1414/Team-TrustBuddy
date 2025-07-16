@@ -37,7 +37,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local development
-        "https://trustbuddy-frontend.onrender.com"  # Deployed frontend (add more as needed)
+        "https://trustbuddy-frontend.onrender.com",  # Deployed frontend (old)
+        "https://trustbuddy-frontend.netlify.app"  # Netlify deployed frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
