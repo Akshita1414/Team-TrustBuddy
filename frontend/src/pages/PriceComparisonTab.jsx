@@ -12,6 +12,8 @@ export default function PriceComparisonTab() {
   const [altError, setAltError] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [rawAnswer, setRawAnswer] = useState('');
+  const [sameProducts, setSameProducts] = useState([]);
+  const [resultType, setResultType] = useState('');
 
   const handleCompare = async () => {
     setError('');
@@ -50,7 +52,9 @@ export default function PriceComparisonTab() {
   const handleRecommend = async () => {
     setAltError('');
     setAlternates([]);
+    setSameProducts([]);
     setRawAnswer('');
+    setResultType('');
     if (!productName.trim() || !maxPrice.trim() || isNaN(Number(maxPrice))) {
       setAltError('Enter product name and a valid max price.');
       return;
@@ -64,17 +68,17 @@ export default function PriceComparisonTab() {
         body: JSON.stringify({ product_name: productName, max_price: maxPrice, username })
       });
       const data = await response.json();
-      if (data.error) {
-        setAltError(data.error);
-        setAltLoading(false);
-        return;
-      }
-      if (data.alternates && data.alternates.length > 0) {
+      setResultType(data.type);
+      if (data.type === 'same_product' && data.products && data.products.length > 0) {
+        setSameProducts(data.products);
+        setRawAnswer(data.raw_answer || '');
+      } else if (data.type === 'alternates' && data.alternates && data.alternates.length > 0) {
         setAlternates(data.alternates);
+        setRawAnswer(data.raw_answer || '');
       } else if (data.raw_answer) {
         setRawAnswer(data.raw_answer);
       } else {
-        setAltError('No alternates found.');
+        setAltError('No products found.');
       }
     } catch (e) {
       setAltError('Failed to fetch alternates.');
@@ -151,7 +155,32 @@ export default function PriceComparisonTab() {
             </svg>
           </div>
         )}
-        {alternates.length > 0 && (
+        {/* Show same product results if present */}
+        {resultType === 'same_product' && sameProducts.length > 0 && (
+          <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded mb-4 text-green-900 mt-4">
+            <div className="font-bold mb-2">Same Product Found on Other Sites:</div>
+            <div className="grid sm:grid-cols-2 gap-6 mt-2">
+              {sameProducts.map((item, idx) => (
+                <div key={idx} className="bg-white rounded-xl shadow p-5 flex flex-col gap-2 border border-gray-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-base">{item.name}</span>
+                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">{item.retailer}</span>
+                  </div>
+                  <div className="text-lg font-bold text-orange-700 mb-1">₹ {item.price}</div>
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm">View Product</a>
+                </div>
+              ))}
+            </div>
+            {rawAnswer && (
+              <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
+                <div className="font-medium mb-1">AI Raw Answer:</div>
+                <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
+              </div>
+            )}
+          </div>
+        )}
+        {/* Show alternates if no same product found */}
+        {resultType === 'alternates' && alternates.length > 0 && (
           <div className="grid sm:grid-cols-2 gap-6 mt-4">
             {alternates.map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl shadow p-5 flex flex-col gap-2 border border-gray-100">
@@ -169,7 +198,8 @@ export default function PriceComparisonTab() {
             ))}
           </div>
         )}
-        {rawAnswer && !alternates.length && (
+        {/* Show raw answer if no products found */}
+        {rawAnswer && resultType && ((resultType === 'same_product' && sameProducts.length === 0) || (resultType === 'alternates' && alternates.length === 0)) && (
           <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
             <div className="font-medium mb-1">AI Suggestions:</div>
             <div className="whitespace-pre-line text-sm">{rawAnswer}</div>

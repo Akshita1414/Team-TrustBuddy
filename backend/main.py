@@ -461,37 +461,87 @@ async def recommend_alternates(payload: dict = Body(...)):
     if not product_name or not max_price:
         return {"error": "Product name and max_price required."}
     api_key = os.getenv("TAVILY_API_KEY")
-    retailers = [
-        "meesho", "flipkart", "amazon", "croma", "reliance", "vijay", "tatacliq", "snapdeal", "shopclues", "paytm mall", "paytmmall", "jiomart", "spencers", "bigbasket", "grofers", "nykaa", "myntra", "ajio"
-    ]
-    prompt = (
-        f"Find alternate products to {product_name} available in India under ₹{max_price} with better value or discounts. "
-        "Return a simple, numbered list of alternates. For each, include: Product name, Price, Retailer, and Link (if available). "
-        "Prioritize Meesho and local Indian e-commerce sites, but include any good deals. "
-        "If you can't find all details, provide as much as possible."
-    )
-    response = requests.post(
-        "https://api.tavily.com/search",
-        headers={"Content-Type": "application/json"},
-        json={
-            "api_key": api_key,
-            "query": prompt,
-            "search_depth": "basic",
-            "include_answer": True
-        },
-        timeout=20
-    )
-    data = response.json()
-    alternates = []
-    answer = data.get("answer") or data.get("summary") or ""
     import re
     from datetime import datetime
     try:
         max_price_val = float(max_price)
     except:
         max_price_val = None
+
+    # Step 1: Check for same product availability
+    prompt_same = (
+        f"Is {product_name} available on Indian e-commerce sites under ₹{max_price}? "
+        "List the sites, prices, and links if available. Return a simple, numbered list. For each, include: Product name, Price, Retailer, and Link (if available). "
+        "If you can't find all details, provide as much as possible."
+    )
+    response_same = requests.post(
+        "https://api.tavily.com/search",
+        headers={"Content-Type": "application/json"},
+        json={
+            "api_key": api_key,
+            "query": prompt_same,
+            "search_depth": "basic",
+            "include_answer": True
+        },
+        timeout=20
+    )
+    data_same = response_same.json()
+    answer_same = data_same.get("answer") or data_same.get("summary") or ""
+    same_products = []
+    same_pattern = re.compile(r"([\w\s\-\+]+)[\s\:\|\-]+₹?(\d+[,.]?\d*)[\s\:\|\-]+([\w\s]+)[\s\:\|\-]+(https?://\S+)", re.IGNORECASE)
+    for match in same_pattern.finditer(answer_same):
+        name, price, retailer, link = match.groups()
+        try:
+            price_val = float(price.replace(",", ""))
+        except:
+            price_val = None
+        if price_val is not None and max_price_val is not None and price_val <= max_price_val:
+            same_products.append({
+                "name": name.strip(),
+                "price": price_val,
+                "retailer": retailer.strip(),
+                "link": link.strip()
+            })
+    same_products.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
+    if same_products:
+        # Save to user history if username is provided
+        if username:
+            users_collection.update_one(
+                {"username": username},
+                {"$push": {"history": {
+                    "type": "same_product_found",
+                    "product_name": product_name,
+                    "max_price": max_price,
+                    "products": same_products,
+                    "raw_answer": answer_same,
+                    "timestamp": datetime.utcnow().isoformat()
+                }}}
+            )
+        return {"type": "same_product", "products": same_products, "raw_answer": answer_same}
+
+    # Step 2: If not found, get alternates
+    prompt_alt = (
+        f"Find alternate products to {product_name} available in India under ₹{max_price} with better value or discounts. "
+        "Return a simple, numbered list of alternates. For each, include: Product name, Price, Retailer, and Link (if available). "
+        "Prioritize Meesho and local Indian e-commerce sites, but include any good deals. "
+        "If you can't find all details, provide as much as possible."
+    )
+    response_alt = requests.post(
+        "https://api.tavily.com/search",
+        headers={"Content-Type": "application/json"},
+        json={
+            "api_key": api_key,
+            "query": prompt_alt,
+            "search_depth": "basic",
+            "include_answer": True
+        },
+        timeout=20
+    )
+    data_alt = response_alt.json()
+    alternates = []
+    answer_alt = data_alt.get("answer") or data_alt.get("summary") or ""
     alt_pattern = re.compile(r"([\w\s\-\+]+)[\s\:\|\-]+₹?(\d+[,.]?\d*)[\s\:\|\-]+([\w\s]+)[\s\:\|\-]+(https?://\S+)", re.IGNORECASE)
-    for match in alt_pattern.finditer(answer):
+    for match in alt_pattern.finditer(answer_alt):
         name, price, retailer, link = match.groups()
         try:
             price_val = float(price.replace(",", ""))
@@ -529,15 +579,15 @@ async def recommend_alternates(payload: dict = Body(...)):
                 "product_name": product_name,
                 "max_price": max_price,
                 "alternates": alternates,
-                "raw_answer": answer,
+                "raw_answer": answer_alt,
                 "timestamp": datetime.utcnow().isoformat()
             }}}
         )
-    if not alternates and answer.strip():
-        return {"alternates": [], "raw_answer": answer}
-    if not alternates and not answer.strip():
-        return {"alternates": [], "raw_answer": ""}
-    return {"alternates": alternates, "raw_answer": answer}
+    if not alternates and answer_alt.strip():
+        return {"type": "alternates", "alternates": [], "raw_answer": answer_alt}
+    if not alternates and not answer_alt.strip():
+        return {"type": "alternates", "alternates": [], "raw_answer": ""}
+    return {"type": "alternates", "alternates": alternates, "raw_answer": answer_alt}
 
 @app.get("/health")
 async def health_check():
