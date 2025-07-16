@@ -311,6 +311,15 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                   <div className={`text-3xl font-bold ${getScoreColor(confidencePercentage)}`}>{confidencePercentage}%</div>
                 </div>
                 <div className={`px-4 py-2 rounded-xl border-2 font-semibold ${getBadgeColor(confidencePercentage)}`}>{badge_text}</div>
+                <button
+                  className="px-3 py-2 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
+                  onClick={() => {
+                    const summary = `${t('AI Analysis Results')}. ${t('Confidence Score')}: ${confidencePercentage}%. ${t('Risk Level')}: ${risk_level}. ${t('Analysis Type')}: ${t('AI-Powered')}. ${t('Model Confidence')}: ${detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + '%' : t('N/A')}`;
+                    speak(summary, language === 'en' ? 'en-US' : language + '-IN');
+                  }}
+                >
+                  🔊 Listen
+                </button>
               </div>
             </div>
             {/* Risk Level Summary */}
@@ -442,7 +451,20 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
 
           {/* Recommendations */}
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('Recommendations')}</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">{t('Recommendations')}</h3>
+              <button
+                className="px-3 py-2 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
+                onClick={() => {
+                  const recommendationsText = recommendations && Array.isArray(recommendations) && recommendations.length > 0 
+                    ? recommendations.join('. ') 
+                    : t('No recommendations available.');
+                  speak(recommendationsText, language === 'en' ? 'en-US' : language + '-IN');
+                }}
+              >
+                🔊 Listen
+              </button>
+            </div>
             <div className="space-y-3">
               {(recommendations && Array.isArray(recommendations) && recommendations.length > 0)
                 ? recommendations.map((recommendation, index) => (
