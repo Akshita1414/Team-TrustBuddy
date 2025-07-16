@@ -5,7 +5,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { Header } from '../components/Header';
 import { ResultsSection } from '../components/ResultsSection';
 import { TabbedInterface } from '../components/TabbedInterface';
-import { AnalysisSection } from '../components/AnalysisSection';
 import { Link, MessageSquare, Image as ImageIcon, Tag, Mic, BarChart3 } from 'lucide-react';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
@@ -18,7 +17,7 @@ function t(key, lang = 'en') {
 }
 
 export function TrustChecker() {
-  const { t: contextT, language } = useLanguage();
+  const { language } = useLanguage();
 
   // Product Link Tab
   const [productUrl, setProductUrl] = useState('');
@@ -31,7 +30,6 @@ export function TrustChecker() {
   const [isAnalyzingReview, setIsAnalyzingReview] = useState(false);
   const [reviewResult, setReviewResult] = useState(null);
   const [reviewError, setReviewError] = useState(null);
-  const [reviewProductName, setReviewProductName] = useState('');
 
   // Product Image Tab
   const [selectedImage, setSelectedImage] = useState(null);
@@ -582,51 +580,6 @@ export function TrustChecker() {
   const reviewHistory = history.filter(h => h.type === 'review' || h.type === 'voice');
   const imageHistory = history.filter(h => h.type === 'product_image');
   const linkHistory = history.filter(h => h.type === 'product_link');
-
-  // Review analytics
-  const reviewTableData = reviewHistory.map(h => ({
-    review: h.review,
-    confidence: h.result?.confidence_score !== undefined ? (h.result.confidence_score * 100).toFixed(1) + '%' : 'N/A',
-    risk: h.result?.risk_level || (h.type === 'voice' ? 'VOICE' : 'SAFE'),
-  }));
-  const reviewTrend = {
-    labels: reviewHistory.map((_, i) => `Review ${i + 1}`),
-    datasets: [
-      {
-        label: 'Confidence',
-        data: reviewHistory.map(h => h.result?.confidence_score ?? 0),
-        borderColor: '#3b82f6',
-        backgroundColor: '#93c5fd',
-        tension: 0.3,
-      },
-    ],
-  };
-
-  // Image analytics
-  const imageTableData = imageHistory.map(h => ({
-    image: h.image,
-    confidence: h.result?.confidence !== undefined ? (h.result.confidence * 100).toFixed(1) + '%' : 'N/A',
-    risk: h.result?.is_ai_generated ? 'HIGH' : 'LOW',
-  }));
-  const imageTrend = {
-    labels: imageHistory.map((h, i) => h.image || `Image ${i + 1}`),
-    datasets: [
-      {
-        label: 'Confidence',
-        data: imageHistory.map(h => h.result?.confidence ?? 0),
-        borderColor: '#ef4444',
-        backgroundColor: '#fecaca',
-        tension: 0.3,
-      },
-    ],
-  };
-
-  // Link analytics (if needed)
-  const linkTableData = linkHistory.map(h => ({
-    url: h.product_url,
-    summary: h.result?.summary?.reason || 'N/A',
-    recommendation: h.result?.summary?.recommendation || 'N/A',
-  }));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">

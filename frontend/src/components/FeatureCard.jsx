@@ -1,5 +1,4 @@
 import React from 'react';
-import { DivideIcon } from 'lucide-react';
 
 export function FeatureCard({ icon: Icon, title, description, gradient }) {
   return (

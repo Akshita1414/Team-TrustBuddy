@@ -1,5 +1,4 @@
 import React from 'react';
-import { DivideIcon } from 'lucide-react';
 
 export function AnalysisCard({ icon: Icon, title, iconColor, children }) {
   return (

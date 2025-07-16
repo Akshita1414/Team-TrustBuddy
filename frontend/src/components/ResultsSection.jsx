@@ -1,31 +1,10 @@
 import React from 'react';
-import {
-  CheckCircle,
-  Upload,
-  AlertTriangle,
-  Shield,
-  Download,
-  Share2,
-  Save,
-  ThumbsUp,
-  RefreshCw,
-  BarChart3,
-  MessageSquare,
-  Brain
-} from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getScoreColor, getBadgeColor, getTrustBadge } from '../utils/trustUtils';
 import { AnalysisCard } from './AnalysisCard';
 
-// Add a helper for translating dynamic AI output
-async function translateText(text, language) {
-  // TODO: Integrate with a translation API (Google Translate, Gemini, etc.)
-  // For now, just return the original text
-  return text;
-}
-
 export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage, showBackButton, productLinkResult }) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   // Show product link analysis if present
   if (productLinkResult) {
@@ -162,13 +141,11 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
   // Destructure only if analysisResult exists
   const confidence_score = analysisResult?.confidence_score;
   const risk_level = analysisResult?.risk_level;
-  const badge_color = analysisResult?.badge_color;
   const badge_text = analysisResult?.badge_text;
   const detailed_analysis = analysisResult?.detailed_analysis;
   const recommendations = analysisResult?.recommendations;
 
   const confidencePercentage = confidence_score ? Math.round(confidence_score * 100) : null;
-  const trustBadge = confidencePercentage !== null ? getTrustBadge(confidencePercentage) : null;
 
   return (
     <div className="space-y-8">
@@ -186,9 +163,9 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             <div className="flex flex-col items-center w-full">
               <div className={`flex items-center justify-center gap-3 text-3xl font-extrabold px-8 py-4 rounded-full mb-4 shadow-xl border-4 transition-all duration-300 ${imageVerification.is_ai_generated ? 'bg-gradient-to-r from-red-200 to-red-400 text-red-800 border-red-400 animate-bounce' : 'bg-gradient-to-r from-green-200 to-green-400 text-green-800 border-green-400 animate-pulse-slow'}`}>
                 {imageVerification.is_ai_generated ? (
-                  <AlertTriangle className="w-10 h-10 text-red-500 animate-shake" />
+                  <span className="text-red-500 animate-shake">⚠️</span>
                 ) : (
-                  <Shield className="w-10 h-10 text-green-500 animate-bounce" />
+                  <span className="text-green-500 animate-bounce">✅</span>
                 )}
                 {imageVerification.is_ai_generated ? t('AI-Generated Image') : t('Authentic Image')}
               </div>
@@ -276,7 +253,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
 
           {/* Analysis Details */}
           <div className="grid md:grid-cols-2 gap-6">
-            <AnalysisCard icon={Brain} title={t('Text Pattern Analysis')} iconColor="text-purple-500">
+            <AnalysisCard icon={null} title={t('Text Pattern Analysis')} iconColor="text-purple-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Grammar Score')}</span>
@@ -296,7 +273,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 </div>
               </div>
             </AnalysisCard>
-            <AnalysisCard icon={MessageSquare} title={t('Sentiment Analysis')} iconColor="text-blue-500">
+            <AnalysisCard icon={null} title={t('Sentiment Analysis')} iconColor="text-blue-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Positive Sentiment')}</span>
@@ -323,7 +300,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 </div>
               </div>
             </AnalysisCard>
-            <AnalysisCard icon={BarChart3} title={t('Coherence Analysis')} iconColor="text-green-500">
+            <AnalysisCard icon={null} title={t('Coherence Analysis')} iconColor="text-green-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Coherence Score')}</span>
@@ -354,7 +331,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 </div>
               </div>
             </AnalysisCard>
-            <AnalysisCard icon={Shield} title={t('ML Model Analysis')} iconColor="text-orange-500">
+            <AnalysisCard icon={null} title={t('ML Model Analysis')} iconColor="text-orange-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">{t('Authenticity Score')}</span>
