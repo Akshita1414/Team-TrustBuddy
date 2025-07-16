@@ -10,6 +10,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
 import { translations } from '../data/translations';
 import PriceComparisonTab from './PriceComparisonTab';
+import { speak } from '../utils/voice';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 function t(key, lang = 'en') {
@@ -552,17 +553,37 @@ export function TrustChecker() {
                 <div className="text-gray-700 mt-2 space-y-2">
                   {typeof voiceResult === 'object' && !Array.isArray(voiceResult) ? (
                     Object.entries(voiceResult).map(([key, value]) => (
-                      <div key={key}>
-                        <span className="font-semibold">{t(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), language)}:</span>{' '}
-                        {typeof value === 'object' && value !== null
-                          ? <pre className="bg-gray-100 rounded p-2 overflow-x-auto text-xs">{JSON.stringify(value, null, 2)}</pre>
-                          : String(value)}
-                      </div>
+                      key !== 'recommendations' && (
+                        <div key={key}>
+                          <span className="font-semibold">{t(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), language)}:</span>{' '}
+                          {typeof value === 'object' && value !== null
+                            ? <pre className="bg-gray-100 rounded p-2 overflow-x-auto text-xs">{JSON.stringify(value, null, 2)}</pre>
+                            : String(value)}
+                        </div>
+                      )
                     ))
                   ) : (
                     String(voiceResult)
                   )}
                 </div>
+                {voiceResult.recommendations && Array.isArray(voiceResult.recommendations) && voiceResult.recommendations.length > 0 && (
+                  <div className="mt-6 bg-white rounded-xl shadow p-4 border border-gray-100">
+                    <div className="flex items-center mb-2">
+                      <h3 className="text-lg font-semibold mr-2">Recommendations</h3>
+                      <button
+                        className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                        onClick={() => speak(voiceResult.recommendations.join('. '), language === 'en' ? 'en-US' : language + '-IN')}
+                      >
+                        🔊 Listen
+                      </button>
+                    </div>
+                    <ul className="list-disc pl-6 space-y-1 text-gray-800">
+                      {voiceResult.recommendations.map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             );
           })()}

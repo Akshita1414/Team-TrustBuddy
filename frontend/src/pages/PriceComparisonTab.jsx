@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { API_CONFIG } from '../config';
+import { speak } from '../utils/voice';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function PriceComparisonTab() {
+  const { language } = useLanguage();
   const [productName, setProductName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -124,7 +127,15 @@ export default function PriceComparisonTab() {
       )}
       {summary && !blocked && (
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100 mt-6">
-          <h3 className="text-lg font-semibold mb-2">Price Insight</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold">Price Insight</h3>
+            <button
+              className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+              onClick={() => speak(summary, language === 'en' ? 'en-US' : language + '-IN')}
+            >
+              🔊 Listen
+            </button>
+          </div>
           <p className="text-gray-800 text-base">{summary}</p>
         </div>
       )}
@@ -173,7 +184,15 @@ export default function PriceComparisonTab() {
             </div>
             {rawAnswer && (
               <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
-                <div className="font-medium mb-1">AI Raw Answer:</div>
+                <div className="flex items-center mb-1">
+                  <div className="font-medium mr-2">AI Raw Answer:</div>
+                  <button
+                    className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                    onClick={() => speak(rawAnswer, language === 'en' ? 'en-US' : language + '-IN')}
+                  >
+                    🔊 Listen
+                  </button>
+                </div>
                 <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
               </div>
             )}
@@ -196,12 +215,34 @@ export default function PriceComparisonTab() {
                 <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm">View Product</a>
               </div>
             ))}
+            {rawAnswer && (
+              <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
+                <div className="flex items-center mb-1">
+                  <div className="font-medium mr-2">AI Raw Answer:</div>
+                  <button
+                    className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                    onClick={() => speak(rawAnswer, language === 'en' ? 'en-US' : language + '-IN')}
+                  >
+                    🔊 Listen
+                  </button>
+                </div>
+                <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
+              </div>
+            )}
           </div>
         )}
         {/* Show raw answer if no products found */}
         {rawAnswer && resultType && ((resultType === 'same_product' && sameProducts.length === 0) || (resultType === 'alternates' && alternates.length === 0)) && (
           <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
-            <div className="font-medium mb-1">AI Suggestions:</div>
+            <div className="flex items-center mb-1">
+              <div className="font-medium mr-2">AI Suggestions:</div>
+              <button
+                className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                onClick={() => speak(rawAnswer, language === 'en' ? 'en-US' : language + '-IN')}
+              >
+                🔊 Listen
+              </button>
+            </div>
             <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
           </div>
         )}

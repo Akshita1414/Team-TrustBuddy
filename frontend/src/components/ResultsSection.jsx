@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { getScoreColor, getBadgeColor } from '../utils/trustUtils';
 import { AnalysisCard } from './AnalysisCard';
+import { speak } from '../utils/voice';
 
 export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage, showBackButton, productLinkResult }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [showProductLinkDetails, setShowProductLinkDetails] = useState(false);
+  const [showImageDetails, setShowImageDetails] = useState(false);
 
   // Show product link analysis if present
   if (productLinkResult) {
@@ -47,8 +50,20 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-blue-200 animate-fade-in">
           <h2 className="text-2xl font-bold text-blue-900 mb-4">{t('Product Link Analysis')}</h2>
           <div className="mb-4">
-            <div className="text-lg font-semibold text-gray-800">{product_title}</div>
-            <div className="text-gray-600 mb-2">{product_description}</div>
+            <div className="text-lg font-semibold text-gray-800 mb-2">
+              {typeof product_title === 'string' ? product_title : typeof product_title === 'object' ? JSON.stringify(product_title) : String(product_title || '')}
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-gray-600">
+                {typeof product_description === 'string' ? product_description : typeof product_description === 'object' ? JSON.stringify(product_description) : String(product_description || '')}
+              </div>
+              <button
+                className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                onClick={() => speak(typeof product_description === 'string' ? product_description : typeof product_description === 'object' ? JSON.stringify(product_description) : String(product_description || ''), language === 'en' ? 'en-US' : language + '-IN')}
+              >
+                🔊 Listen
+              </button>
+            </div>
             {product_image_url ? (
               <img 
                 src={product_image_url} 
@@ -62,6 +77,17 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
           </div>
           <div className="mb-4">
             <h3 className="font-semibold text-blue-700 mb-2">{t('Extracted Reviews')}</h3>
+            {reviews && reviews.length > 0 && (
+              <div className="flex items-center justify-between mb-2">
+                <div></div>
+                <button
+                  className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                  onClick={() => speak(reviews.join('. '), language === 'en' ? 'en-US' : language + '-IN')}
+                >
+                  🔊 Listen
+                </button>
+              </div>
+            )}
             <ul className="list-disc pl-6 space-y-1 text-gray-700">
               {reviews && reviews.map((rv, idx) => <li key={idx}>{rv}</li>)}
             </ul>
@@ -70,7 +96,15 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             <h3 className="font-semibold text-blue-700 mb-2">{t('Image Authenticity')}</h3>
             {image_analysis ? (
               <div className="p-4 rounded-lg border-2 bg-blue-50 border-blue-200">
-                <div className="font-semibold">Label: <span className={image_analysis.label === 'AI-generated' ? 'text-red-600' : 'text-green-600'}>{image_analysis.label}</span></div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold">Label: <span className={image_analysis.label === 'AI-generated' ? 'text-red-600' : 'text-green-600'}>{image_analysis.label}</span></div>
+                  <button
+                    className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                    onClick={() => speak(`Image authenticity: ${image_analysis.label}. Confidence: ${typeof image_analysis.confidence === 'number' ? Math.round(image_analysis.confidence * 100) : 'N/A'}%. ${image_analysis.reason}`, language === 'en' ? 'en-US' : language + '-IN')}
+                  >
+                    🔊 Listen
+                  </button>
+                </div>
                 <div>Confidence: <span className="font-semibold">{typeof image_analysis.confidence === 'number' ? `${Math.round(image_analysis.confidence * 100)}%` : 'N/A'}</span></div>
                 <div className="text-gray-700 mt-1">{image_analysis.reason}</div>
               </div>
@@ -100,10 +134,37 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             )}
             {summary ? (
               <div className={`p-4 rounded-lg border-2 ${summary.recommendation === 'Buy' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                <div className="font-bold text-lg mb-1">
-                  {summary.recommendation === 'Buy' ? <span className="text-green-700">{t('Recommended to Buy')}</span> : <span className="text-red-700">{t('Not Recommended')}</span>}
+                <div className="flex items-center mb-1">
+                  <div className="font-bold text-lg">
+                    {summary.recommendation === 'Buy' ? <span className="text-green-700">{t('Recommended to Buy')}</span> : <span className="text-red-700">{t('Not Recommended')}</span>}
+                  </div>
+                  <button
+                    className="ml-3 px-2 py-1 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
+                    onClick={() => speak(summary.recommendation === 'Buy' ? t('Recommended to Buy') : t('Not Recommended'), language === 'en' ? 'en-US' : language + '-IN')}
+                  >
+                    🔊 Listen
+                  </button>
                 </div>
                 <div className="text-gray-700">{summary.reason}</div>
+                <div className="mt-2">
+                  <button
+                    className="text-blue-600 text-xs underline focus:outline-none"
+                    onClick={() => setShowProductLinkDetails((v) => !v)}
+                  >
+                    {showProductLinkDetails ? 'Hide Details' : 'ℹ️ Show Details'}
+                  </button>
+                </div>
+                {showProductLinkDetails && (
+                  <div className="mt-4 bg-gray-50 border border-gray-200 rounded p-4">
+                    <pre className="text-xs text-gray-800 whitespace-pre-wrap">{JSON.stringify(productLinkResult, null, 2)}</pre>
+                    <button
+                      className="mt-2 px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
+                      onClick={() => speak(JSON.stringify(productLinkResult, null, 2), language === 'en' ? 'en-US' : language + '-IN')}
+                    >
+                      🔊 Listen to Details
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-gray-500">
@@ -199,6 +260,28 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                   {imageVerification.message}
                 </div>
               )}
+              <button
+                className="mt-4 px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition-colors"
+                onClick={() => {
+                  const status = imageVerification.is_ai_generated ? t('AI-Generated Image') : t('Authentic Image');
+                  const confidence = Math.round(imageVerification.confidence * 100);
+                  const recommendation = (() => {
+                    const conf = imageVerification.confidence;
+                    if (!imageVerification.is_ai_generated && conf >= 0.7) {
+                      return t('This product image looks genuine. You can buy it with confidence!');
+                    } else if (!imageVerification.is_ai_generated && conf >= 0.4) {
+                      return t('This image is somewhat suspicious. Please verify further before buying.');
+                    } else if (imageVerification.is_ai_generated && conf >= 0.7) {
+                      return t('Warning: This image is likely AI-generated. Be cautious before purchasing.');
+                    } else {
+                      return t('This image may be AI-generated. Please verify further before buying.');
+                    }
+                  })();
+                  speak(`${status}. Confidence: ${confidence}%. ${recommendation}`, language === 'en' ? 'en-US' : language + '-IN');
+                }}
+              >
+                🔊 Listen to Analysis
+              </button>
             </div>
           )}
         </div>
