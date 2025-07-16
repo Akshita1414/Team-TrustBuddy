@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { getScoreColor, getBadgeColor, getTrustBadge } from '../utils/trustUtils';
+import { getScoreColor, getBadgeColor } from '../utils/trustUtils';
 import { AnalysisCard } from './AnalysisCard';
 
 export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage, showBackButton, productLinkResult }) {

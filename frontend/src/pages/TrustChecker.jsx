@@ -576,11 +576,6 @@ export function TrustChecker() {
     },
   ];
 
-  // Group history by type
-  const reviewHistory = history.filter(h => h.type === 'review' || h.type === 'voice');
-  const imageHistory = history.filter(h => h.type === 'product_image');
-  const linkHistory = history.filter(h => h.type === 'product_link');
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
       <Header
