@@ -411,6 +411,7 @@ def signup(user: UserSignup):
 
 @app.post("/login")
 def login(user: UserLogin):
+    print(f"Login attempt received for username: {user.username}")  # Debug log
     db_user = users_collection.find_one({"username": user.username, "password": user.password})
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
@@ -587,11 +588,14 @@ async def api_info():
         }
     }
 
+
+
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=8000,
-        reload=True,  # Enable auto-reload during development
+        app,
+        host="0.0.0.0",
+        port=port,
+        reload=True,  # You can set this to False for production
         log_level="info"
     )
