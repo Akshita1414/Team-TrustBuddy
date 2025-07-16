@@ -7,7 +7,6 @@ import { speak } from '../utils/voice';
 export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage, showBackButton, productLinkResult }) {
   const { t, language } = useLanguage();
   const [showProductLinkDetails, setShowProductLinkDetails] = useState(false);
-  const [showImageDetails, setShowImageDetails] = useState(false);
 
   // Show product link analysis if present
   if (productLinkResult) {
