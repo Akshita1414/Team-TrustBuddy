@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Globe } from 'lucide-react';
+import { Shield, Globe, Flower } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { LANGUAGES } from '../data/constants';
 
@@ -7,43 +7,51 @@ export function Header({ title, showBackButton, onBackClick }) {
   const { t, language, setLanguage } = useLanguage();
 
   return (
-    <header className="bg-white shadow-md border-b-4 border-orange-400">
+    <header className="backdrop-blur-glass bg-white/70 dark:bg-gray-900/70 shadow-glass border-b-4 border-saffron rounded-b-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {showBackButton ? (
             <button
               onClick={onBackClick}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="flex items-center gap-2 text-bharatgreen hover:text-saffron font-medium transition-colors"
+              aria-label={t('backToHome')}
             >
               <Shield className="w-6 h-6" />
               <span>{t('backToHome')}</span>
             </button>
           ) : (
             <>
-              <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-xl shadow-md">
+              <div className="bg-gradient-to-r from-saffron to-bharatgreen p-3 rounded-2xl shadow-glass flex items-center gap-2">
                 <Shield className="w-8 h-8 text-white" />
+                {/* Bharat badge */}
+                <span className="ml-2 flex items-center gap-1 px-2 py-1 bg-white/70 dark:bg-gray-800/70 rounded-lg text-xs font-semibold text-saffron shadow-sm border border-saffron">
+                  <Flower className="w-4 h-4 text-saffron" />
+                  Bharat
+                </span>
               </div>
-              <div className="flex flex-col">
-                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">TrustBuddy</h1>
-                <p className="text-orange-600 font-medium">{t('tagline')}</p>
+              <div className="flex flex-col ml-2">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight font-sans">TrustBuddy</h1>
+                <p className="text-bharatgreen font-medium text-sm" aria-label="Tagline">{t('tagline')}</p>
+                <span className="text-xs text-gray-500 mt-1">Helping Bharat shop safer — one product at a time.</span>
               </div>
             </>
           )}
 
           {title && (
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white ml-4">{title}</h1>
           )}
         </div>
 
         {/* Language Selector */}
-        <div className="relative">
+        <div className="relative" aria-label="Language Selector">
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="appearance-none bg-white border-2 border-orange-200 rounded-lg px-4 py-2 pr-8 text-gray-700 hover:border-orange-400 focus:border-orange-500 focus:outline-none transition-colors"
+            className="appearance-none bg-white/80 dark:bg-gray-800/80 border-2 border-bharatgreen rounded-lg px-4 py-2 pr-8 text-gray-700 dark:text-white hover:border-saffron focus:border-saffron focus:outline-none transition-colors font-sans min-w-[120px]"
+            aria-label="Select Language"
           >
             {LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code}>
+              <option key={lang.code} value={lang.code} className="font-sans">
                 {lang.flag} {lang.name}
               </option>
             ))}
