@@ -5,7 +5,7 @@ import { translations } from './data/translations';
 const resources = {
   en: { translation: translations.en },
   hi: { translation: translations.hi },
-  pa: { translation: translations.pa },
+  gu: { translation: translations.gu },
   mr: { translation: translations.mr },
 };
 

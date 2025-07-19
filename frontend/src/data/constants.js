@@ -1,7 +1,7 @@
 export const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇮🇳' },
   { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
-  { code: 'pa', name: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
+  { code: 'gu', name: 'ગુજરાતી', flag: '🇮🇳' },
   { code: 'mr', name: 'मराठी', flag: '🇮🇳' },
   { code: 'kn', name: 'ಕನ್ನಡ', flag: '🇮🇳' }
 ];

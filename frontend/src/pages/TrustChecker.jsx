@@ -10,7 +10,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
 import { translations } from '../data/translations';
 import PriceComparisonTab from './PriceComparisonTab';
-import { speak } from '../utils/voice';
+import { speak, getVoiceLanguage } from '../utils/voice';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 function t(key, lang = 'en') {
@@ -572,7 +572,7 @@ export function TrustChecker() {
                       <h3 className="text-lg font-semibold mr-2">Recommendations</h3>
                       <button
                         className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                        onClick={() => speak(voiceResult.recommendations.join('. '), language === 'en' ? 'en-US' : language + '-IN')}
+                        onClick={() => speak(voiceResult.recommendations.join('. '), getVoiceLanguage(language))}
                       >
                         🔊 Listen
                       </button>
@@ -591,7 +591,7 @@ export function TrustChecker() {
       )
     },
     {
-      label: t('Price Comparison', language),
+      label: t('priceComparison', language),
       icon: BarChart3,
       content: <PriceComparisonTab />
     },
@@ -695,7 +695,7 @@ export function TrustChecker() {
                     } else if (item.type === "price_comparison") {
                       reviewText = (
                         <div>
-                          <div style={{fontWeight:600, color:'#f59e42'}}>Price Comparison</div>
+                          <div style={{fontWeight:600, color:'#f59e42'}}>{t('priceComparison', language)}</div>
                           <div><b>Product:</b> {item.product_name}</div>
                           <div style={{fontStyle:'italic', color:'#64748b', fontSize:13}}>{item.summary ? item.summary.slice(0,120)+(item.summary.length>120?'...':'') : 'No summary.'}</div>
                         </div>

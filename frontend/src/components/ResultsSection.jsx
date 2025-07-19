@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { getScoreColor, getBadgeColor } from '../utils/trustUtils';
 import { AnalysisCard } from './AnalysisCard';
-import { speak } from '../utils/voice';
+import { speak, getVoiceLanguage, logAvailableVoices } from '../utils/voice';
 
 export function ResultsSection({ analysisResult, onNewAnalysis, imageVerification, selectedImage, isVerifyingImage, showBackButton, productLinkResult }) {
   const { t, language } = useLanguage();
+  
+  // Debug: Log available voices on component mount
+  React.useEffect(() => {
+    logAvailableVoices();
+  }, []);
   const [showProductLinkDetails, setShowProductLinkDetails] = useState(false);
 
   // Show product link analysis if present
@@ -58,7 +63,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               </div>
               <button
                 className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                onClick={() => speak(typeof product_description === 'string' ? product_description : typeof product_description === 'object' ? JSON.stringify(product_description) : String(product_description || ''), language === 'en' ? 'en-US' : language + '-IN')}
+                onClick={() => speak(typeof product_description === 'string' ? product_description : typeof product_description === 'object' ? JSON.stringify(product_description) : String(product_description || ''), getVoiceLanguage(language))}
               >
                 🔊 Listen
               </button>
@@ -81,7 +86,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 <div></div>
                 <button
                   className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                  onClick={() => speak(reviews.join('. '), language === 'en' ? 'en-US' : language + '-IN')}
+                  onClick={() => speak(reviews.join('. '), getVoiceLanguage(language))}
                 >
                   🔊 Listen
                 </button>
@@ -99,7 +104,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                   <div className="font-semibold">Label: <span className={image_analysis.label === 'AI-generated' ? 'text-red-600' : 'text-green-600'}>{image_analysis.label}</span></div>
                   <button
                     className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                    onClick={() => speak(`Image authenticity: ${image_analysis.label}. Confidence: ${typeof image_analysis.confidence === 'number' ? Math.round(image_analysis.confidence * 100) : 'N/A'}%. ${image_analysis.reason}`, language === 'en' ? 'en-US' : language + '-IN')}
+                    onClick={() => speak(`Image authenticity: ${image_analysis.label}. Confidence: ${typeof image_analysis.confidence === 'number' ? Math.round(image_analysis.confidence * 100) : 'N/A'}%. ${image_analysis.reason}`, getVoiceLanguage(language))}
                   >
                     🔊 Listen
                   </button>
@@ -139,7 +144,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                   </div>
                   <button
                     className="ml-3 px-2 py-1 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
-                    onClick={() => speak(summary.recommendation === 'Buy' ? t('Recommended to Buy') : t('Not Recommended'), language === 'en' ? 'en-US' : language + '-IN')}
+                    onClick={() => speak(summary.recommendation === 'Buy' ? t('recommendedToBuy') : t('notRecommended'), getVoiceLanguage(language))}
                   >
                     🔊 Listen
                   </button>
@@ -158,7 +163,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                     <pre className="text-xs text-gray-800 whitespace-pre-wrap">{JSON.stringify(productLinkResult, null, 2)}</pre>
                     <button
                       className="mt-2 px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                      onClick={() => speak(JSON.stringify(productLinkResult, null, 2), language === 'en' ? 'en-US' : language + '-IN')}
+                      onClick={() => speak(JSON.stringify(productLinkResult, null, 2), getVoiceLanguage(language))}
                     >
                       🔊 Listen to Details
                     </button>
@@ -212,12 +217,12 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
       {/* Product Image Verification Result */}
       {(selectedImage || isVerifyingImage || imageVerification) && (
         <div className="relative bg-gradient-to-br from-blue-100 via-white to-green-100 rounded-3xl shadow-2xl p-10 border-4 border-blue-200 flex flex-col items-center mb-8 animate-fade-in">
-          <h3 className="text-3xl font-extrabold text-blue-900 mb-6 tracking-tight drop-shadow-lg">{t('Product Image Authenticity')}</h3>
+          <h3 className="text-3xl font-extrabold text-blue-900 mb-6 tracking-tight drop-shadow-lg">{t('productImageAuthenticity')}</h3>
           {selectedImage && (
             <img src={URL.createObjectURL(selectedImage)} alt="Product Preview" className="h-48 w-48 object-cover rounded-2xl shadow-xl mb-6 border-4 border-white" />
           )}
           {isVerifyingImage && (
-            <div className="text-blue-600 font-bold text-lg mt-2 animate-pulse">{t('Analyzing image authenticity...')}</div>
+            <div className="text-blue-600 font-bold text-lg mt-2 animate-pulse">{t('analyzingImageAuthenticity')}</div>
           )}
           {imageVerification && !isVerifyingImage && (
             <div className="flex flex-col items-center w-full">
@@ -227,7 +232,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 ) : (
                   <span className="text-green-500 animate-bounce">✅</span>
                 )}
-                {imageVerification.is_ai_generated ? t('AI-Generated Image') : t('Authentic Image')}
+                {imageVerification.is_ai_generated ? t('aiGeneratedImage') : t('authenticImage')}
               </div>
               {/* Recommendation line based on confidence and badge color */}
               {(() => {
@@ -237,15 +242,15 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 } else if (!imageVerification.is_ai_generated && conf >= 0.4) {
                   return <div className="text-yellow-700 font-semibold text-lg mb-2">{t('This image is somewhat suspicious. Please verify further before buying.')}</div>;
                 } else if (imageVerification.is_ai_generated && conf >= 0.7) {
-                  return <div className="text-red-700 font-semibold text-lg mb-2">{t('Warning: This image is likely AI-generated. Be cautious before purchasing.')}</div>;
+                  return <div className="text-red-700 font-semibold text-lg mb-2">{t('warning')}</div>;
                 } else {
                   return <div className="text-yellow-700 font-semibold text-lg mb-2">{t('This image may be AI-generated. Please verify further before buying.')}</div>;
                 }
               })()}
               <div className="w-full max-w-sm mb-4">
                 <div className="flex justify-between text-sm text-gray-600 mb-1 font-semibold">
-                  <span>{t('Confidence')}</span>
-                  <span>{Math.round(imageVerification.confidence * 100)}%</span>
+                  <span>{t('confidence')}</span>
+                  <span>{Math.round(imageVerification.confidence * 100)}{t('percent')}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-5 shadow-inner">
                   <div
@@ -262,7 +267,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               <button
                 className="mt-4 px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition-colors"
                 onClick={() => {
-                  const status = imageVerification.is_ai_generated ? t('AI-Generated Image') : t('Authentic Image');
+                  const status = imageVerification.is_ai_generated ? t('aiGeneratedImage') : t('authenticImage');
                   const confidence = Math.round(imageVerification.confidence * 100);
                   const recommendation = (() => {
                     const conf = imageVerification.confidence;
@@ -276,11 +281,11 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                       return t('This image may be AI-generated. Please verify further before buying.');
                     }
                   })();
-                  speak(`${status}. Confidence: ${confidence}%. ${recommendation}`, language === 'en' ? 'en-US' : language + '-IN');
+                  speak(`${status}. ${t('confidence')}: ${confidence}${t('percent')}. ${recommendation}`, getVoiceLanguage(language));
                 }}
-              >
-                🔊 Listen to Analysis
-              </button>
+                              >
+                  🔊 {t('listenToAnalysis')}
+                </button>
             </div>
           )}
         </div>
@@ -304,18 +309,18 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
           {/* Results Header */}
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{t('AI Analysis Results')}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('aiAnalysisResults')}</h2>
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <div className="text-sm text-gray-600">{t('Confidence Score')}</div>
+                  <div className="text-sm text-gray-600">{t('confidenceScore')}</div>
                   <div className={`text-3xl font-bold ${getScoreColor(confidencePercentage)}`}>{confidencePercentage}%</div>
                 </div>
                 <div className={`px-4 py-2 rounded-xl border-2 font-semibold ${getBadgeColor(confidencePercentage)}`}>{badge_text}</div>
                 <button
                   className="px-3 py-2 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
                   onClick={() => {
-                    const summary = `${t('AI Analysis Results')}. ${t('Confidence Score')}: ${confidencePercentage}%. ${t('Risk Level')}: ${risk_level}. ${t('Analysis Type')}: ${t('AI-Powered')}. ${t('Model Confidence')}: ${detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + '%' : t('N/A')}`;
-                    speak(summary, language === 'en' ? 'en-US' : language + '-IN');
+                    const summary = `${t('aiAnalysisResults')}. ${t('confidenceScore')}: ${confidencePercentage}${t('percent')}. ${t('riskLevel')}: ${risk_level === 'LOW' ? t('low') : risk_level === 'MEDIUM' ? t('medium') : risk_level === 'HIGH' ? t('high') : risk_level}. ${t('analysisType')}: ${t('aiPowered')}. ${t('modelConfidence')}: ${detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + t('percent') : t('na')}`;
+                    speak(summary, getVoiceLanguage(language));
                   }}
                 >
                   🔊 Listen
@@ -325,89 +330,104 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             {/* Risk Level Summary */}
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600">{t('Risk Level')}</div>
+                <div className="text-sm text-gray-600">{t('riskLevel')}</div>
                 <div className={`text-lg font-semibold ${
                   risk_level === 'LOW' ? 'text-green-600' :
                   risk_level === 'MEDIUM' ? 'text-yellow-600' : 'text-red-600'
-                }`}>{risk_level}</div>
+                }`}>{risk_level === 'LOW' ? t('low') : risk_level === 'MEDIUM' ? t('medium') : risk_level === 'HIGH' ? t('high') : risk_level}</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600">{t('Analysis Type')}</div>
-                <div className="text-lg font-semibold text-gray-900">{t('AI-Powered')}</div>
+                <div className="text-sm text-gray-600">{t('analysisType')}</div>
+                <div className="text-lg font-semibold text-gray-900">{t('aiPowered')}</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600">{t('Model Confidence')}</div>
-                <div className="text-lg font-semibold text-blue-600">{detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + '%' : t('N/A')}</div>
+                <div className="text-sm text-gray-600">{t('modelConfidence')}</div>
+                <div className="text-lg font-semibold text-blue-600">{detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + t('percent') : t('na')}</div>
               </div>
             </div>
           </div>
 
           {/* Analysis Details */}
           <div className="grid md:grid-cols-2 gap-6">
-            <AnalysisCard icon={null} title={t('Text Pattern Analysis')} iconColor="text-purple-500">
+            <AnalysisCard icon={null} title={t('textPatternAnalysis')} iconColor="text-purple-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Grammar Score')}</span>
-                  <span className="text-green-600 font-semibold">{detailed_analysis?.text_analysis?.grammar_score !== undefined ? Math.round(detailed_analysis.text_analysis.grammar_score * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('grammarScore')}</span>
+                  <span className="text-green-600 font-semibold">{detailed_analysis?.text_analysis?.grammar_score !== undefined ? Math.round(detailed_analysis.text_analysis.grammar_score * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Length Score')}</span>
-                  <span className="text-blue-600 font-semibold">{detailed_analysis?.text_analysis?.length_score !== undefined ? Math.round(detailed_analysis.text_analysis.length_score * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('lengthScore')}</span>
+                  <span className="text-blue-600 font-semibold">{detailed_analysis?.text_analysis?.length_score !== undefined ? Math.round(detailed_analysis.text_analysis.length_score * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Repetitive Words')}</span>
-                  <span className="text-yellow-600 font-semibold">{detailed_analysis?.text_analysis?.repetitive_words !== undefined ? Math.round(detailed_analysis.text_analysis.repetitive_words * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('repetitiveWords')}</span>
+                  <span className="text-yellow-600 font-semibold">{detailed_analysis?.text_analysis?.repetitive_words !== undefined ? Math.round(detailed_analysis.text_analysis.repetitive_words * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="mt-4 p-3 bg-purple-50 rounded-lg">
-                  <div className="text-sm text-purple-800 font-medium">{t('Analysis Summary:')}</div>
-                  <div className="text-sm text-purple-700">{detailed_analysis.summary}</div>
+                  <div className="text-sm text-purple-800 font-medium">{t('analysisSummary')}</div>
+                  <div className="text-sm text-purple-700">
+                    {(() => {
+                      // Translate common summary patterns
+                      const summary = detailed_analysis.summary?.toLowerCase() || '';
+                      if (summary.includes('suspicious') && summary.includes('verify')) return t('reviewHasSuspiciousElements');
+                      return detailed_analysis.summary; // Fallback to original if no pattern matches
+                    })()}
+                  </div>
                 </div>
               </div>
             </AnalysisCard>
-            <AnalysisCard icon={null} title={t('Sentiment Analysis')} iconColor="text-blue-500">
+            <AnalysisCard icon={null} title={t('sentimentAnalysis')} iconColor="text-blue-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Positive Sentiment')}</span>
-                  <span className="text-green-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.positive !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.positive * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('positiveSentiment')}</span>
+                  <span className="text-green-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.positive !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.positive * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Negative Sentiment')}</span>
-                  <span className="text-red-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.negative !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.negative * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('negativeSentiment')}</span>
+                  <span className="text-red-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.negative !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.negative * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Neutral Sentiment')}</span>
-                  <span className="text-gray-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.neutral !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.neutral * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('neutralSentiment')}</span>
+                  <span className="text-gray-600 font-semibold">{detailed_analysis?.sentiment_analysis?.scores?.neutral !== undefined ? Math.round(detailed_analysis.sentiment_analysis.scores.neutral * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Dominant Sentiment')}</span>
-                  <span className="text-blue-600 font-semibold capitalize">{detailed_analysis?.sentiment_analysis?.dominant_sentiment ?? t('N/A')}</span>
+                  <span className="text-gray-600">{t('dominantSentiment')}</span>
+                  <span className="text-blue-600 font-semibold capitalize">
+                    {(() => {
+                      const sentiment = detailed_analysis?.sentiment_analysis?.dominant_sentiment;
+                      if (sentiment === 'neutral') return t('neutral');
+                      if (sentiment === 'positive') return t('positive');
+                      if (sentiment === 'negative') return t('negative');
+                      return sentiment ?? t('na');
+                    })()}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Extreme Sentiment')}</span>
-                  <span className="text-red-600 font-semibold">{detailed_analysis?.sentiment_analysis?.extreme_sentiment !== undefined ? (detailed_analysis.sentiment_analysis.extreme_sentiment ? t('Yes') : t('No')) : t('N/A')}</span>
+                  <span className="text-gray-600">{t('extremeSentiment')}</span>
+                  <span className="text-red-600 font-semibold">{detailed_analysis?.sentiment_analysis?.extreme_sentiment !== undefined ? (detailed_analysis.sentiment_analysis.extreme_sentiment ? t('yes') : t('no')) : t('na')}</span>
                 </div>
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <div className="text-sm text-blue-800 font-medium">{detailed_analysis?.sentiment_analysis?.extreme_sentiment !== undefined ? (detailed_analysis.sentiment_analysis.extreme_sentiment ? '⚠️ Extreme sentiment detected' : '✅ Balanced sentiment') : t('N/A')}</div>
+                  <div className="text-sm text-blue-800 font-medium">{detailed_analysis?.sentiment_analysis?.extreme_sentiment !== undefined ? (detailed_analysis.sentiment_analysis.extreme_sentiment ? '⚠️ ' + t('extremeSentimentDetected') : '✅ ' + t('balancedSentiment')) : t('na')}</div>
                 </div>
               </div>
             </AnalysisCard>
-            <AnalysisCard icon={null} title={t('Coherence Analysis')} iconColor="text-green-500">
+            <AnalysisCard icon={null} title={t('coherenceAnalysis')} iconColor="text-green-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Coherence Score')}</span>
-                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.coherence_score !== undefined ? Math.round(detailed_analysis.coherence_analysis.coherence_score * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('coherenceScore')}</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.coherence_score !== undefined ? Math.round(detailed_analysis.coherence_analysis.coherence_score * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Product Relevance')}</span>
-                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.product_relevance !== undefined ? (detailed_analysis.coherence_analysis.product_relevance ? t('Yes') : t('No')) : t('N/A')}</span>
+                  <span className="text-gray-600">{t('productRelevance')}</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.product_relevance !== undefined ? (detailed_analysis.coherence_analysis.product_relevance ? t('yes') : t('no')) : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Topic Consistency')}</span>
-                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.topic_consistency !== undefined ? Math.round(detailed_analysis.coherence_analysis.topic_consistency * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('topicConsistency')}</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.topic_consistency !== undefined ? Math.round(detailed_analysis.coherence_analysis.topic_consistency * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Specificity Score')}</span>
-                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.specificity_score !== undefined ? Math.round(detailed_analysis.coherence_analysis.specificity_score * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('specificityScore')}</span>
+                  <span className="text-purple-600 font-semibold">{detailed_analysis?.coherence_analysis?.specificity_score !== undefined ? Math.round(detailed_analysis.coherence_analysis.specificity_score * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="mt-4 p-3 bg-green-50 rounded-lg">
                   <div className="text-sm text-green-800 font-medium">
@@ -422,28 +442,28 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 </div>
               </div>
             </AnalysisCard>
-            <AnalysisCard icon={null} title={t('ML Model Analysis')} iconColor="text-orange-500">
+            <AnalysisCard icon={null} title={t('mlModelAnalysis')} iconColor="text-orange-500">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Authenticity Score')}</span>
+                  <span className="text-gray-600">{t('authenticityScore')}</span>
                   <span className={
                     detailed_analysis?.ml_analysis?.authenticity_score > 0.7 ? 'text-green-600 font-semibold' :
                     detailed_analysis?.ml_analysis?.authenticity_score > 0.4 ? 'text-yellow-600 font-semibold' :
                     'text-red-600 font-semibold'
                   }>
-                    {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')}
+                    {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + t('percent') : t('na')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Model Confidence')}</span>
-                  <span className="text-blue-600 font-semibold">{detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + '%' : t('N/A')}</span>
+                  <span className="text-gray-600">{t('modelConfidence')}</span>
+                  <span className="text-blue-600 font-semibold">{detailed_analysis?.ml_analysis?.model_confidence !== undefined ? Math.round(detailed_analysis.ml_analysis.model_confidence * 100) + t('percent') : t('na')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">{t('Overall Assessment')}</span>
-                  <span className={`font-semibold ${detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'text-green-600' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'text-yellow-600' : 'text-red-600') : ''}`}>{detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'Authentic' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'Suspicious' : 'Fake') : t('N/A')}</span>
+                  <span className="text-gray-600">{t('overallAssessment')}</span>
+                  <span className={`font-semibold ${detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? 'text-green-600' : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'text-yellow-600' : 'text-red-600') : ''}`}>{detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? (detailed_analysis.ml_analysis.authenticity_score > 0.7 ? t('authentic') : detailed_analysis.ml_analysis.authenticity_score > 0.4 ? 'Suspicious' : t('fake')) : t('na')}</span>
                 </div>
                 <div className={`mt-4 px-3 py-1 rounded-xl text-sm font-semibold ${detailed_analysis?.ml_analysis?.authenticity_score > 0.7 ? 'bg-green-50 text-green-700' : detailed_analysis?.ml_analysis?.authenticity_score > 0.4 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'}`}>
-                  {t('AI Model Prediction:')} {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + '%' : t('N/A')} {t('authentic')}
+                  {t('aiModelPrediction')}: {detailed_analysis?.ml_analysis?.authenticity_score !== undefined ? Math.round(detailed_analysis.ml_analysis.authenticity_score * 100) + t('percent') : t('na')} {t('authentic')}
                 </div>
               </div>
             </AnalysisCard>
@@ -452,14 +472,23 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
           {/* Recommendations */}
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">{t('Recommendations')}</h3>
+              <h3 className="text-xl font-semibold text-gray-900">{t('recommendations')}</h3>
               <button
                 className="px-3 py-2 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
                 onClick={() => {
                   const recommendationsText = recommendations && Array.isArray(recommendations) && recommendations.length > 0 
-                    ? recommendations.join('. ') 
-                    : t('No recommendations available.');
-                  speak(recommendationsText, language === 'en' ? 'en-US' : language + '-IN');
+                    ? recommendations.map(rec => {
+                        // Translate common recommendation patterns
+                        const recLower = rec.toLowerCase();
+                        if (recLower.includes('low risk') && recLower.includes('authentic')) return t('lowRiskReviewAppearsAuthentic');
+                        if (recLower.includes('consider') && recLower.includes('decision')) return t('considerThisReviewInDecision');
+                        if (recLower.includes('genuine') && recLower.includes('experience')) return t('showsGenuineExperiencePatterns');
+                        if (recLower.includes('well-written') && recLower.includes('grammar')) return t('wellWrittenWithGoodGrammar');
+                        if (recLower.includes('balanced') && recLower.includes('sentiment')) return t('balancedSentimentNotExtreme');
+                        return rec; // Fallback to original if no pattern matches
+                      }).join('. ')
+                    : t('noRecommendationsAvailable');
+                  speak(recommendationsText, getVoiceLanguage(language));
                 }}
               >
                 🔊 Listen
@@ -470,10 +499,21 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                 ? recommendations.map((recommendation, index) => (
                   <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className="text-green-500 mt-1">•</div>
-                    <span className="text-gray-700">{recommendation}</span>
+                    <span className="text-gray-700">
+                      {(() => {
+                        // Translate common recommendation patterns
+                        const rec = recommendation.toLowerCase();
+                        if (rec.includes('low risk') && rec.includes('authentic')) return t('lowRiskReviewAppearsAuthentic');
+                        if (rec.includes('consider') && rec.includes('decision')) return t('considerThisReviewInDecision');
+                        if (rec.includes('genuine') && rec.includes('experience')) return t('showsGenuineExperiencePatterns');
+                        if (rec.includes('well-written') && rec.includes('grammar')) return t('wellWrittenWithGoodGrammar');
+                        if (rec.includes('balanced') && rec.includes('sentiment')) return t('balancedSentimentNotExtreme');
+                        return recommendation; // Fallback to original if no pattern matches
+                      })()}
+                    </span>
                   </div>
                 ))
-                : <div className="text-gray-500">{t('No recommendations available.')}</div>
+                : <div className="text-gray-500">{t('noRecommendationsAvailable')}</div>
               }
             </div>
           </div>
