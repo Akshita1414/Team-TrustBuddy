@@ -446,6 +446,7 @@ class FakeReviewDetector:
         """
         Main method to analyze a review for authenticity
         """
+        print(f"DEBUG: analyze_review called with text: {request.review_text[:100]}...")
         try:
             # Perform all analyses except fake detection
             analyses = {
@@ -459,6 +460,8 @@ class FakeReviewDetector:
                 'ml_prediction': self.hf_fake_review_detection(request.review_text)
             }
             
+            print(f"DEBUG: ML prediction result: {analyses['ml_prediction']}")
+            
             # Calculate confidence score
             confidence_score = self.calculate_confidence_score(analyses)
 
@@ -471,12 +474,16 @@ class FakeReviewDetector:
 
             # Ensure ml_analysis fields are present
             ml_pred = analyses['ml_prediction']
+            print(f"DEBUG: Final ML analysis assignment - ml_pred: {ml_pred}")
+            
             if isinstance(ml_pred, dict) and 'score' in ml_pred:
                 authenticity_score = ml_pred['score']
-                model_confidence = ml_pred['score']
+                model_confidence = ml_pred.get('model_confidence', ml_pred['score'])
+                print(f"DEBUG: Final ML analysis - Authenticity: {authenticity_score}, Confidence: {model_confidence}")
             else:
-                authenticity_score = 0.0
-                model_confidence = 0.0
+                authenticity_score = 0.5
+                model_confidence = 0.5
+                print(f"DEBUG: Final ML analysis - Using defaults - Authenticity: {authenticity_score}, Confidence: {model_confidence}")
 
             # Generate recommendations
             recommendations = self.generate_recommendations(analyses, risk_info['risk_level'])
@@ -554,30 +561,110 @@ class FakeReviewDetector:
 
     def hf_fake_review_detection(self, text: str) -> dict:
         """
-        Use Hugging Face Inference API for fake review detection (martin-ha/toxic-comment-model)
+        Enhanced ML prediction for fake review detection with better logic
         """
+        print(f"DEBUG: ML Analysis - Input text: {text[:100]}...")
+        
         HF_API_TOKEN = os.environ.get("HF_API_TOKEN_TEXT")
         HF_API_URL = "https://api-inference.huggingface.co/models/martin-ha/toxic-comment-model"
         headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
         payload = {"inputs": text}
+        
         try:
+            print(f"DEBUG: ML Analysis - Calling Hugging Face API...")
             response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=30)
             if response.status_code == 200:
                 result = response.json()
+                print(f"DEBUG: ML Analysis - API Response: {result}")
+                
                 # result is a list of list of dicts: [[{'label': 'toxic', 'score': ...}, ...]]
                 if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
                     best = max(result[0], key=lambda r: r['score'])
+                    
+                    # Convert toxic score to authenticity score (1 - toxic_score)
+                    toxic_score = float(best['score'])
+                    authenticity_score = 1.0 - toxic_score
+                    
+                    # Adjust model confidence based on the strength of the prediction
+                    model_confidence = max(0.1, min(1.0, abs(toxic_score - 0.5) * 2))
+                    
+                    print(f"DEBUG: ML Analysis - Toxic score: {toxic_score}, Authenticity: {authenticity_score}, Confidence: {model_confidence}")
+                    
                     return {
                         'label': best['label'],
-                        'score': float(best['score']),
+                        'score': authenticity_score,  # Return authenticity score instead of toxic score
+                        'model_confidence': model_confidence,
                         'raw': result
                     }
                 else:
-                    return {'error': 'Unexpected Hugging Face API response', 'raw': result}
+                    print(f"DEBUG: ML Analysis - Unexpected API response format, using fallback")
+                    # Fallback to rule-based prediction if API response is unexpected
+                    return self._fallback_ml_prediction(text)
             else:
-                return {'error': f'Hugging Face API error: {response.text}'}
+                print(f"DEBUG: ML Analysis - API failed with status {response.status_code}, using fallback")
+                # Fallback to rule-based prediction if API fails
+                return self._fallback_ml_prediction(text)
         except Exception as e:
-            return {'error': str(e)}
+            print(f"DEBUG: ML Analysis - Exception: {str(e)}, using fallback")
+            # Fallback to rule-based prediction if API fails
+            return self._fallback_ml_prediction(text)
+    
+    def _fallback_ml_prediction(self, text: str) -> dict:
+        """
+        Rule-based fallback ML prediction when API is unavailable
+        """
+        print(f"DEBUG: Fallback ML Analysis - Using rule-based prediction")
+        text_lower = text.lower()
+        
+        # Fake indicators
+        fake_indicators = [
+            'amazing', 'perfect', 'excellent', 'incredible', 'fantastic', 'outstanding',
+            'phenomenal', 'spectacular', 'wonderful', 'brilliant', 'superb', 'marvelous',
+            'changed my life', 'best thing ever', 'never seen anything like it',
+            'works perfectly', 'exactly as described', 'five stars all the way',
+            'recommend to everyone', 'don\'t miss this', 'incredible deal',
+            'absolutely amazing', 'blown away', 'exceeded expectations',
+            'must have', 'must buy', 'everyone should', 'hurry up', 'limited time',
+            'act now', 'don\'t miss', 'urgent', 'immediately'
+        ]
+        
+        # Genuine indicators
+        genuine_indicators = [
+            'good', 'nice', 'decent', 'okay', 'fine', 'satisfactory', 'adequate',
+            'reasonable', 'fair', 'acceptable', 'moderate', 'average', 'standard',
+            'works well', 'does the job', 'meets expectations', 'as expected',
+            'good value', 'worth the money', 'reasonable price', 'fair price',
+            'some issues', 'minor problems', 'could be better', 'room for improvement',
+            'not perfect', 'has flaws', 'mixed feelings', 'pros and cons'
+        ]
+        
+        # Count indicators
+        fake_count = sum(1 for indicator in fake_indicators if indicator in text_lower)
+        genuine_count = sum(1 for indicator in genuine_indicators if indicator in text_lower)
+        
+        print(f"DEBUG: Fallback ML Analysis - Fake indicators found: {fake_count}")
+        print(f"DEBUG: Fallback ML Analysis - Genuine indicators found: {genuine_count}")
+        
+        # Calculate authenticity score
+        total_indicators = fake_count + genuine_count
+        if total_indicators == 0:
+            authenticity_score = 0.5  # Neutral if no clear indicators
+        else:
+            # Weight genuine indicators more heavily
+            authenticity_score = (genuine_count * 1.5) / (fake_count + genuine_count * 1.5)
+            authenticity_score = max(0.1, min(0.9, authenticity_score))  # Clamp between 0.1 and 0.9
+        
+        # Model confidence based on indicator strength
+        model_confidence = min(1.0, total_indicators / 5.0)  # Higher confidence with more indicators
+        
+        print(f"DEBUG: Fallback ML Analysis - Authenticity score: {authenticity_score}, Confidence: {model_confidence}")
+        
+        return {
+            'label': 'authentic' if authenticity_score > 0.5 else 'fake',
+            'score': authenticity_score,
+            'model_confidence': model_confidence,
+            'method': 'rule_based_fallback'
+        }
 
     def analyze_product_name(self, product_name: str, language: str = "en") -> dict:
         """

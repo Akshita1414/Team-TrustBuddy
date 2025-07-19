@@ -15,9 +15,224 @@ import requests
 
 from dotenv import load_dotenv
 from gradio_client import Client, handle_file
+import httpx
 
 load_dotenv()
 
+# Gemini API configuration
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+
+# Debug: Print Gemini API key status
+print(f"DEBUG: GEMINI_API_KEY is {'set' if GEMINI_API_KEY else 'NOT set'}")
+if GEMINI_API_KEY:
+    print(f"DEBUG: GEMINI_API_KEY starts with: {GEMINI_API_KEY[:10]}...")
+else:
+    print("DEBUG: Please set GEMINI_API_KEY in your .env file")
+
+async def translate_with_gemini(text: str, target_language: str, product_name: str) -> str:
+    """Translate text using Gemini API"""
+    print(f"DEBUG: translate_with_gemini called with language: {target_language}, product: {product_name}")
+    print(f"DEBUG: Original text: {text[:100]}...")
+    
+    if not GEMINI_API_KEY:
+        print("WARNING: GEMINI_API_KEY not found, returning original text")
+        return text
+    
+    if target_language == "en":
+        return text  # No translation needed for English
+    
+    language_map = {
+        "hi": "Hindi",
+        "gu": "Gujarati", 
+        "mr": "Marathi",
+        "kn": "Kannada"
+    }
+    
+    target_lang = language_map.get(target_language, "English")
+    
+    prompt = f"""
+    Translate the following text to {target_lang}. Keep product names, prices (₹), and numbers unchanged.
+    Only translate the descriptive text. Maintain the same tone and structure.
+    
+    Text to translate: {text}
+    
+    Product name: {product_name}
+    
+    Return only the translated text, nothing else.
+    """
+    
+    try:
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
+        response = requests.post(
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if "candidates" in result and len(result["candidates"]) > 0:
+                translated_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+                print(f"DEBUG: Gemini translation successful for {target_language}: {translated_text[:100]}...")
+                return translated_text
+            else:
+                print(f"DEBUG: Gemini API returned unexpected format: {result}")
+                return text
+        else:
+            print(f"DEBUG: Gemini API error {response.status_code}: {response.text}")
+            return text
+            
+    except Exception as e:
+        print(f"DEBUG: Gemini translation error: {str(e)}")
+        return text
+
+async def generate_analysis_with_gemini(product_name: str, language: str) -> str:
+    """Generate price analysis using Gemini API"""
+    if not GEMINI_API_KEY:
+        print("WARNING: GEMINI_API_KEY not found, returning fallback message")
+        return f"No price data found for {product_name}. Please check multiple retailers."
+    
+    language_map = {
+        "hi": "Hindi",
+        "gu": "Gujarati",
+        "mr": "Marathi", 
+        "kn": "Kannada"
+    }
+    
+    target_lang = language_map.get(language, "English")
+    
+    prompt = f"""
+    Generate a brief price analysis for {product_name} in {target_lang}.
+    The analysis should mention that no specific price data was found and suggest checking multiple retailers.
+    Keep it concise and helpful.
+    
+    Product: {product_name}
+    Language: {target_lang}
+    
+    Return only the analysis text in {target_lang}, nothing else.
+    """
+    
+    try:
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
+        response = requests.post(
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if "candidates" in result and len(result["candidates"]) > 0:
+                analysis = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+                print(f"DEBUG: Gemini analysis generated for {language}: {analysis[:100]}...")
+                return analysis
+            else:
+                print(f"DEBUG: Gemini API returned unexpected format: {result}")
+                return f"No price data found for {product_name}. Please check multiple retailers."
+        else:
+            print(f"DEBUG: Gemini API error {response.status_code}: {response.text}")
+            return f"No price data found for {product_name}. Please check multiple retailers."
+            
+    except Exception as e:
+        print(f"DEBUG: Gemini analysis error: {str(e)}")
+        return f"No price data found for {product_name}. Please check multiple retailers."
+
+# Unified translation function
+async def translate_text_unified(text: str, target_lang: str, context: str = "") -> str:
+    """Unified translation function using Gemini API with fallback"""
+    if not text or target_lang == "en" or not text.strip():
+        return text
+    print(f"DEBUG: Translating '{text[:50]}...' to {target_lang}")
+    # Try Gemini API first
+    try:
+        if GEMINI_API_KEY:
+            language_map = {
+                "hi": "Hindi",
+                "gu": "Gujarati", 
+                "mr": "Marathi",
+                "kn": "Kannada",
+                "es": "Spanish",
+                "fr": "French"
+            }
+            target_language = language_map.get(target_lang, target_lang)
+            prompt = f"""
+            Translate the following text to {target_language}. 
+            Context: {context}
+            Maintain the same tone and meaning. Keep numbers, prices (₹), and proper nouns unchanged.
+            Text: {text}
+            Return only the translated text.
+            """
+            payload = {
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }]
+            }
+            response = requests.post(
+                f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+                json=payload,
+                timeout=30
+            )
+            if response.status_code == 200:
+                result = response.json()
+                if "candidates" in result and len(result["candidates"]) > 0:
+                    translated = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    print(f"DEBUG: Gemini translation successful: '{translated[:50]}...'")
+                    return translated
+    except Exception as e:
+        print(f"DEBUG: Gemini translation failed: {e}")
+    # Fallback to LibreTranslate
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://libretranslate.de/translate", 
+                json={
+                    "q": text,
+                    "source": "en",
+                    "target": target_lang,
+                    "format": "text"
+                }
+            )
+            if response.status_code == 200:
+                result = response.json()
+                translated = result.get("translatedText", text)
+                print(f"DEBUG: LibreTranslate successful: '{translated[:50]}...'")
+                return translated
+    except Exception as e:
+        print(f"DEBUG: LibreTranslate failed: {e}")
+    # Hardcoded fallback for common recommendations
+    fallback_map = {
+        ("not recommended", "gu"): "ભલામણ કરેલ નથી",
+        ("buy", "gu"): "ખરીદો",
+        ("do not buy", "gu"): "ખરીદો નહીં",
+        ("not recommended", "hi"): "सिफारिश नहीं की गई",
+        ("buy", "hi"): "खरीदें",
+        ("do not buy", "hi"): "खरीदें नहीं",
+        ("not recommended", "mr"): "शिफारस केलेली नाही",
+        ("buy", "mr"): "खरेदी करा",
+        ("do not buy", "mr"): "खरेदी करू नका",
+        ("not recommended", "kn"): "ಶಿಫಾರಸು ಮಾಡಲಾಗಿಲ್ಲ",
+        ("buy", "kn"): "ಖರೀದಿ ಮಾಡಿ",
+        ("do not buy", "kn"): "ಖರೀದಿ ಮಾಡಬೇಡಿ"
+    }
+    normalized_text = text.strip().lower().replace('.', '')
+    print(f"DEBUG: Fallback check: '{normalized_text}', lang: '{target_lang}'")
+    key = (normalized_text, target_lang)
+    if key in fallback_map:
+        print(f"DEBUG: Using hardcoded fallback for {key}: {fallback_map[key]}")
+        return fallback_map[key]
+    print(f"DEBUG: All translation methods failed, returning original text")
+    return text
 
 # MongoDB Atlas connection
 MONGO_URL = os.getenv("MONGO_URL")
@@ -73,12 +288,13 @@ def clear_history(payload: dict):
 
 # Update analyze_review to save to user history if username is provided
 @app.post("/analyze-review", response_model=ReviewResponse)
-async def analyze_review(request: ReviewRequest, username: Optional[str] = None):
+async def analyze_review(request: ReviewRequest, username: Optional[str] = None, language: str = "en"):
     """
     Analyze a review for authenticity and return confidence score with visual badge
     
     Args:
         request: ReviewRequest containing review text and optional metadata
+        language: Target language for translation (default: "en")
         
     Returns:
         ReviewResponse with confidence score, risk level, badge info, and detailed analysis
@@ -91,7 +307,37 @@ async def analyze_review(request: ReviewRequest, username: Optional[str] = None)
     
     try:
         result = detector.analyze_review(request)
-        # Save to user history if username is provided
+        
+        # Translate ALL text fields if language is not English
+        if language != "en":
+            print(f"DEBUG: Starting translation for analyze-review with language: {language}")
+            # Translate recommendations
+            if result.recommendations:
+                translated_recommendations = []
+                for rec in result.recommendations:
+                    translated_rec = await translate_text_unified(
+                        rec, language, f"recommendation for {getattr(request, 'product_name', 'product')}"
+                    )
+                    translated_recommendations.append(translated_rec)
+                result.recommendations = translated_recommendations
+            # Translate detailed analysis summary
+            if result.detailed_analysis and result.detailed_analysis.summary:
+                result.detailed_analysis.summary = await translate_text_unified(
+                    result.detailed_analysis.summary, 
+                    language, 
+                    f"analysis summary for {getattr(request, 'product_name', 'product')}"
+                )
+            # Translate detailed analysis reasons if they exist
+            if result.detailed_analysis and hasattr(result.detailed_analysis, 'reasons'):
+                translated_reasons = []
+                for reason in result.detailed_analysis.reasons:
+                    translated_reason = await translate_text_unified(
+                        reason, language, "analysis reason"
+                    )
+                    translated_reasons.append(translated_reason)
+                result.detailed_analysis.reasons = translated_reasons
+            print(f"DEBUG: Translation completed for analyze-review")
+        # Save to user history
         if username:
             users_collection.update_one(
                 {"username": username},
@@ -99,6 +345,7 @@ async def analyze_review(request: ReviewRequest, username: Optional[str] = None)
             )
         return result
     except Exception as e:
+        print(f"ERROR in analyze-review: {str(e)}")
         raise HTTPException(
             status_code=500, 
             detail=f"Internal server error during analysis: {str(e)}"
@@ -114,11 +361,13 @@ async def verify_image(image: UploadFile = File(...), username: Optional[str] = 
             tmp.write(contents)
             tmp_path = tmp.name
         # Use gradio_client to call your Space
+        print(f"DEBUG: Calling Akshita1414/Image_Hugging_Face Space in verify-image")
         client = Client("Akshita1414/Image_Hugging_Face")
         result = client.predict(
             img=handle_file(tmp_path),
             api_name="/predict"
         )
+        print(f"DEBUG: Space result in verify-image: {result}")
         # Optionally, clean up the temp file
         import os
         os.remove(tmp_path)
@@ -135,6 +384,9 @@ async def verify_image(image: UploadFile = File(...), username: Optional[str] = 
 
 @app.post("/analyze-product-link")
 async def analyze_product_link(request: Request, username: Optional[str] = None):
+    language = request.query_params.get("language", "en")
+    print(f"DEBUG: language param in analyze-product-link: {language}")
+    print(f"DEBUG: Product link analysis requested with language: {language}")
     import requests as pyrequests
     from bs4 import BeautifulSoup
     import bs4
@@ -279,37 +531,77 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
             content = desc_tag.get("content")
             if isinstance(content, str):
                 desc = content.strip()
-        # Analyze product image with Hugging Face Inference API
+        # Analyze product image with Gradio client
         image_analysis = None
         if img_url and isinstance(img_url, str):
             try:
                 img_resp = pyrequests.get(img_url, headers=headers, timeout=10)
                 if img_resp.status_code == 200:
-                    image_bytes = img_resp.content
-                    HF_API_TOKEN = os.environ.get("HF_API_TOKEN_IMAGE")
-                    HF_API_URL = "https://api-inference.huggingface.co/models/prithivMLmods/open-deepfake-detection"
-                    hf_headers = {
-                        "Authorization": f"Bearer {HF_API_TOKEN}"
-                    }
-                    response = pyrequests.post(HF_API_URL, headers=hf_headers, data=image_bytes, timeout=60)
-                    if response.status_code == 200:
-                        result = response.json()
-                        # The model returns a list of dicts with 'label' and 'score'
-                        # Example: [{"label": "REAL", "score": 0.87}, {"label": "FAKE", "score": 0.13}]
-                        if isinstance(result, list) and all('label' in r and 'score' in r for r in result):
-                            # Find the label with the highest score
-                            best = max(result, key=lambda r: r['score'])
-                            image_analysis = {
-                                "label": best['label'],
-                                "confidence": float(best['score']),
-                                "reason": f"Hugging Face model prediction: {best['label']} with confidence {round(best['score']*100, 1)}%"
-                            }
-                        else:
-                            image_analysis = {"error": "Unexpected Hugging Face API response", "raw_response": result, "confidence": 0.0}
+                    # Save the image to a temporary file
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                        tmp.write(img_resp.content)
+                        tmp_path = tmp.name
+                    
+                    # Use gradio_client to call your Space
+                    print(f"DEBUG: Calling Akshita1414/Image_Hugging_Face Space")
+                    client = Client("Akshita1414/Image_Hugging_Face")
+                    result = client.predict(
+                        img=handle_file(tmp_path),
+                        api_name="/predict"
+                    )
+                    print(f"DEBUG: Space result: {result}")
+                    
+                    # Clean up the temp file
+                    import os
+                    os.remove(tmp_path)
+                    
+                    # Process the result from your Space
+                    if isinstance(result, dict):
+                        label = result.get("label", "UNKNOWN")
+                        confidence = float(result.get("confidence", 0.0))
+                        
+                        # If confidence is 0, assign based on label
+                        if confidence == 0.0:
+                            if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
+                                confidence = 0.85
+                            elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
+                                confidence = 0.35
+                            else:
+                                confidence = 0.7
+                        
+                        image_analysis = {
+                            "label": label,
+                            "confidence": confidence,
+                            "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
+                        }
+                    elif isinstance(result, list) and len(result) > 0:
+                        # Handle list response format
+                        best = max(result, key=lambda r: r.get('score', 0) if isinstance(r, dict) else 0)
+                        label = best.get("label", "UNKNOWN")
+                        confidence = float(best.get("score", 0.0))
+                        
+                        # If confidence is 0, assign based on label
+                        if confidence == 0.0:
+                            if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
+                                confidence = 0.85
+                            elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
+                                confidence = 0.35
+                            else:
+                                confidence = 0.7
+                        
+                        image_analysis = {
+                            "label": label,
+                            "confidence": confidence,
+                            "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
+                        }
                     else:
-                        image_analysis = {"error": f"Hugging Face API error: {response.text}", "confidence": 0.0}
+                        image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
+                else:
+                    image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
             except Exception as e:
-                image_analysis = {"error": str(e), "confidence": 0.0}
+                print(f"DEBUG: Image analysis exception: {str(e)}")
+                image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
         # If image_analysis is still None, ensure it is a dict with confidence 0.0
         if image_analysis is None:
             image_analysis = {"label": None, "confidence": 0.0, "reason": "No image analysis performed."}
@@ -381,6 +673,48 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
             "summary": summary,
             "final_confidence_score": final_confidence_score
         }
+        # --- TRANSLATION PATCH ---
+        if language != "en":
+            print(f"DEBUG: Starting translation for product link analysis - language: {language}")
+            try:
+                if title and isinstance(title, str):
+                    response_data["product_title"] = await translate_text_unified(
+                        title, language, "product title"
+                    )
+                if desc and isinstance(desc, str):
+                    response_data["product_description"] = await translate_text_unified(
+                        desc, language, "product description"
+                    )
+                if reviews and isinstance(reviews, list):
+                    translated_reviews = []
+                    for review in reviews:
+                        if review and isinstance(review, str):
+                            translated_review = await translate_text_unified(
+                                review, language, "customer review"
+                            )
+                            translated_reviews.append(translated_review)
+                        else:
+                            translated_reviews.append(review)
+                    response_data["reviews"] = translated_reviews
+                if (image_analysis and isinstance(image_analysis, dict) 
+                    and image_analysis.get("reason")):
+                    response_data["image_analysis"]["reason"] = await translate_text_unified(
+                        image_analysis["reason"], language, "image analysis"
+                    )
+                # Only translate and show the short recommendation as summary.reason
+                if summary and isinstance(summary, dict):
+                    if summary.get("recommendation"):
+                        translated_recommendation = await translate_text_unified(
+                            summary["recommendation"], language, "recommendation"
+                        )
+                        response_data["summary"]["reason"] = translated_recommendation
+                        response_data["summary"]["recommendation"] = translated_recommendation
+                    else:
+                        response_data["summary"]["reason"] = ""
+                        response_data["summary"]["recommendation"] = ""
+            except Exception as e:
+                print(f"ERROR: Translation failed in product link analysis: {e}")
+        # --- END PATCH ---
         # Save to user history if username is provided
         if username:
             users_collection.update_one(
@@ -401,6 +735,29 @@ async def analyze_product_name(payload: dict = Body(...)):
     if not product_name or len(product_name.strip()) < 3:
         raise HTTPException(status_code=400, detail="Product name is too short or empty.")
     result = detector.analyze_product_name(product_name, language)
+    # Translate ALL text fields if language is not English
+    if language != "en":
+        print(f"DEBUG: Starting translation for analyze-product-name with language: {language}")
+        try:
+            if isinstance(result, dict):
+                for key, value in result.items():
+                    if isinstance(value, str):
+                        result[key] = await translate_text_unified(
+                            value, language, f"product analysis {key}"
+                        )
+                    elif isinstance(value, list):
+                        translated_list = []
+                        for item in value:
+                            if isinstance(item, str):
+                                translated_item = await translate_text_unified(
+                                    item, language, f"product analysis {key}"
+                                )
+                                translated_list.append(translated_item)
+                            else:
+                                translated_list.append(item)
+                        result[key] = translated_list
+        except Exception as e:
+            print(f"ERROR: Translation failed in analyze-product-name: {e}")
     return result
 
 @app.post("/signup")
@@ -422,42 +779,185 @@ def login(user: UserLogin):
 async def compare_prices(payload: dict = Body(...)):
     product_name = payload.get("product_name")
     username = payload.get("username")
+    language = payload.get("language", "en")  # Default to English
+    print(f"DEBUG: Received language parameter: {language}")  # Debug log
     if not product_name:
         return {"error": "Product name required."}
+    
     api_key = os.getenv("TAVILY_API_KEY")
-    tavily_prompt = f"Is the price of {product_name} inflated in India? Give a brief summary."
-    response = requests.post(
-        "https://api.tavily.com/search",
-        headers={"Content-Type": "application/json"},
-        json={
-            "api_key": api_key,
-            "query": tavily_prompt,
-            "search_depth": "basic",
-            "include_answer": True
-        },
-        timeout=15
-    )
-    data = response.json()
-    summary = data.get("answer") or data.get("summary") or "No insight available."
-    # Save to user history if username is provided
-    if username:
-        from datetime import datetime
-        users_collection.update_one(
-            {"username": username},
-            {"$push": {"history": {
-                "type": "price_comparison",
-                "product_name": product_name,
-                "summary": summary,
-                "timestamp": datetime.utcnow().isoformat()
-            }}}
-        )
-    return {"summary": summary}
+    
+    try:
+        # Step 1: Search for actual prices on specific e-commerce sites with better prompts
+        search_queries = [
+            f'"{product_name}" current price ₹ site:amazon.in',
+            f'"{product_name}" price in rupees site:flipkart.com',
+            f'"{product_name}" cost ₹ site:meesho.com',
+            f'"{product_name}" MRP price site:ajio.com',
+            f'"{product_name}" buy now price ₹ site:amazon.in',
+            f'"{product_name}" offer price site:flipkart.com',
+            f'"{product_name}" product listing price site:amazon.in',
+            f'"{product_name}" product page price site:flipkart.com'
+        ]
+        
+        actual_prices = []
+        all_content = ""
+        
+        for query in search_queries:
+            try:
+                response = requests.post(
+                    "https://api.tavily.com/search",
+                    headers={"Content-Type": "application/json"},
+                    json={
+                        "api_key": api_key,
+                        "query": query,
+                        "search_depth": "advanced",
+                        "include_answer": True,
+                        "include_domains": ["amazon.in", "flipkart.com", "meesho.com", "ajio.com"],
+                        "max_results": 10,
+                        "include_raw_content": True
+                    },
+                    timeout=20
+                )
+                
+                data = response.json()
+                results = data.get("results", [])
+                
+                for result in results:
+                    content = result.get("content", "")
+                    url = result.get("url", "")
+                    title = result.get("title", "")
+                    raw_content = result.get("raw_content", "")
+                    all_content += content + " "
+                    
+                    # Extract prices from both processed content and raw content
+                    import re
+                    price_patterns = [
+                        r"₹\s*([\d,]+)",
+                        r"Rs\.?\s*([\d,]+)",
+                        r"(\d{4,})\s*(?:rupees?|rs)",
+                        r"price[:\s]*₹?\s*([\d,]+)",
+                        r"cost[:\s]*₹?\s*([\d,]+)",
+                        r"MRP[:\s]*₹?\s*([\d,]+)",
+                        r"(\d{4,})\s*₹",
+                        r"₹\s*(\d{1,3}(?:,\d{3})*)",
+                        r"buy\s+now[:\s]*₹?\s*([\d,]+)",
+                        r"offer\s+price[:\s]*₹?\s*([\d,]+)",
+                        r"discounted\s+price[:\s]*₹?\s*([\d,]+)",
+                        r"current\s+price[:\s]*₹?\s*([\d,]+)",
+                        r"(\d{4,})\s*(?:INR|₹|Rs)",
+                        r"price[:\s]*(\d{4,})",
+                        r"cost[:\s]*(\d{4,})",
+                        r"class=\"[^\"]*price[^\"]*\"[^>]*>([^<]*₹\s*[\d,]+)",
+                        r"data-price=\"([\d,]+)\"",
+                        r"price\":\s*\"([\d,]+)\"",
+                        r"amount\":\s*([\d,]+)"
+                    ]
+                    
+                    # Search in both processed content and raw HTML
+                    search_contents = [content]
+                    if raw_content:
+                        search_contents.append(raw_content)
+                    
+                    for search_content in search_contents:
+                        for pattern in price_patterns:
+                            matches = re.findall(pattern, search_content, re.IGNORECASE)
+                            for match in matches:
+                                try:
+                                    # Clean the match to extract just the number
+                                    price_str = re.sub(r'[^\d,]', '', str(match))
+                                    price = int(price_str.replace(",", ""))
+                                    if 500 <= price <= 500000:  # Wider range for different products
+                                        actual_prices.append({
+                                            "price": price,
+                                            "source": url,
+                                            "title": title,
+                                            "content": content[:200]  # First 200 chars for context
+                                        })
+                                except:
+                                    continue
+                                
+            except Exception as e:
+                print(f"Error searching {query}: {str(e)}")
+                continue
+        
+        # Remove duplicates and sort by price
+        unique_prices = []
+        seen_prices = set()
+        for price_data in actual_prices:
+            price_key = (price_data["price"], price_data["source"])
+            if price_key not in seen_prices:
+                seen_prices.add(price_key)
+                unique_prices.append(price_data)
+        
+        unique_prices.sort(key=lambda x: x["price"])
+        
+        # Step 2: Generate specific analysis based on found prices
+        if unique_prices:
+            min_price = unique_prices[0]["price"]
+            max_price = unique_prices[-1]["price"]
+            avg_price = sum(p["price"] for p in unique_prices) // len(unique_prices)
+            
+            # Generate analysis in English first
+            if len(unique_prices) >= 3:
+                price_variance = max_price - min_price
+                price_ratio = price_variance / avg_price if avg_price > 0 else 0
+                
+                if price_ratio > 0.5:
+                    analysis = f"Price varies significantly for {product_name}. Found prices range from ₹{min_price:,} to ₹{max_price:,} across different retailers. This suggests either different models/variants or price manipulation."
+                elif price_ratio > 0.2:
+                    analysis = f"Moderate price variation found for {product_name}. Average price: ₹{avg_price:,}, range: ₹{min_price:,} - ₹{max_price:,}. Consider comparing features across retailers."
+                else:
+                    analysis = f"Consistent pricing found for {product_name}. Average price: ₹{avg_price:,}, range: ₹{min_price:,} - ₹{max_price:,}. This indicates stable market pricing."
+            else:
+                analysis = f"Found {product_name} at ₹{avg_price:,}. Limited price data available for comparison."
+            
+            # Add recommendations
+            if min_price < avg_price * 0.8:
+                analysis += f" Best deal found at ₹{min_price:,}."
+            if max_price > avg_price * 1.2:
+                analysis += f" Avoid prices above ₹{max_price:,} as they appear inflated."
+            
+            # Use unified translation instead of translate_with_gemini
+            enhanced_summary = await translate_text_unified(
+                analysis, language, f"price analysis for {product_name}"
+            )
+            print(f"DEBUG: Translation result: {enhanced_summary[:100]}...")
+            
+        else:
+            # No prices found, use Gemini API for analysis
+            enhanced_summary = await generate_analysis_with_gemini(product_name, language)
+        
+        # Save to user history if username is provided
+        if username:
+            from datetime import datetime
+            users_collection.update_one(
+                {"username": username},
+                {"$push": {"history": {
+                    "type": "price_comparison",
+                    "product_name": product_name,
+                    "summary": enhanced_summary,
+                    "actual_prices": unique_prices,
+                    "timestamp": datetime.utcnow().isoformat()
+                }}}
+            )
+        
+        return {
+            "summary": enhanced_summary,
+            "actual_prices": unique_prices
+        }
+        
+    except Exception as e:
+        return {
+            "summary": f"Error analyzing prices for {product_name}: {str(e)}",
+            "actual_prices": []
+        }
 
 @app.post("/recommend-alternates")
 async def recommend_alternates(payload: dict = Body(...)):
     product_name = payload.get("product_name")
     max_price = payload.get("max_price")
     username = payload.get("username")
+    language = payload.get("language", "en")  # Default to English
     if not product_name or not max_price:
         return {"error": "Product name and max_price required."}
     api_key = os.getenv("TAVILY_API_KEY")
@@ -468,11 +968,16 @@ async def recommend_alternates(payload: dict = Body(...)):
     except:
         max_price_val = None
 
-    # Step 1: Check for same product availability
+    # Step 1: Check for same product availability with improved prompt
     prompt_same = (
-        f"Is {product_name} available on Indian e-commerce sites under ₹{max_price}? "
-        "List the sites, prices, and links if available. Return a simple, numbered list. For each, include: Product name, Price, Retailer, and Link (if available). "
-        "If you can't find all details, provide as much as possible."
+        f"Find the exact same '{product_name}' product available on multiple Indian e-commerce sites under ₹{max_price}. "
+        "Search specifically on: Amazon.in, Flipkart.com, Meesho.com, Ajio.com, Croma.com, Reliance Digital, Tata Cliq, Paytm Mall. "
+        "Return ONLY the exact same product (not alternatives) in this format: "
+        "1. Product Name | Price ₹X | Retailer | Link "
+        "2. Product Name | Price ₹X | Retailer | Link "
+        "Focus on finding the SAME model/variant across different retailers. "
+        "If you find the exact product on multiple sites, list each one. "
+        "If no exact match is found, say 'Exact product not found on multiple sites'."
     )
     response_same = requests.post(
         "https://api.tavily.com/search",
@@ -503,27 +1008,13 @@ async def recommend_alternates(payload: dict = Body(...)):
                 "link": link.strip()
             })
     same_products.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
-    if same_products:
-        # Save to user history if username is provided
-        if username:
-            users_collection.update_one(
-                {"username": username},
-                {"$push": {"history": {
-                    "type": "same_product_found",
-                    "product_name": product_name,
-                    "max_price": max_price,
-                    "products": same_products,
-                    "raw_answer": answer_same,
-                    "timestamp": datetime.utcnow().isoformat()
-                }}}
-            )
-        return {"type": "same_product", "products": same_products, "raw_answer": answer_same}
 
-    # Step 2: If not found, get alternates
+    # Step 2: Always check for alternate products with improved prompt
     prompt_alt = (
-        f"Find alternate products to {product_name} available in India under ₹{max_price} with better value or discounts. "
+        f"Find alternate products to '{product_name}' available in India under ₹{max_price} with better value, discounts, or similar features. "
         "Return a simple, numbered list of alternates. For each, include: Product name, Price, Retailer, and Link (if available). "
-        "Prioritize Meesho and local Indian e-commerce sites, but include any good deals. "
+        "Prioritize Meesho and local Indian e-commerce sites, but include any good deals from Amazon.in, Flipkart.com, Ajio.com, etc. "
+        "Look for similar products, better deals, or alternatives that offer more value for money. "
         "If you can't find all details, provide as much as possible."
     )
     response_alt = requests.post(
@@ -570,24 +1061,33 @@ async def recommend_alternates(payload: dict = Body(...)):
                 "price_score": score
             })
     alternates.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
+
+    # Step 3: Return both same products and alternates
+    result = {
+        "type": "both_products",
+        "same_products": same_products,
+        "alternates": alternates,
+        "same_products_raw": answer_same,
+        "alternates_raw": answer_alt
+    }
+
     # Save to user history if username is provided
     if username:
         users_collection.update_one(
             {"username": username},
             {"$push": {"history": {
-                "type": "alternate_products",
+                "type": "product_recommendations",
                 "product_name": product_name,
                 "max_price": max_price,
+                "same_products": same_products,
                 "alternates": alternates,
-                "raw_answer": answer_alt,
+                "same_products_raw": answer_same,
+                "alternates_raw": answer_alt,
                 "timestamp": datetime.utcnow().isoformat()
             }}}
         )
-    if not alternates and answer_alt.strip():
-        return {"type": "alternates", "alternates": [], "raw_answer": answer_alt}
-    if not alternates and not answer_alt.strip():
-        return {"type": "alternates", "alternates": [], "raw_answer": ""}
-    return {"type": "alternates", "alternates": alternates, "raw_answer": answer_alt}
+
+    return result
 
 @app.get("/health")
 async def health_check():
@@ -597,6 +1097,57 @@ async def health_check():
         "service": "TrustBuddy Fake Review Detection",
         "version": "1.0.0"
     }
+
+@app.get("/test-gemini")
+async def test_gemini():
+    """Test endpoint to verify Gemini API is working"""
+    if not GEMINI_API_KEY:
+        return {
+            "status": "error",
+            "message": "GEMINI_API_KEY not set",
+            "gemini_configured": False
+        }
+    
+    try:
+        # Test translation
+        test_text = "Hello world"
+        translated = await translate_with_gemini(test_text, "mr", "test product")
+        
+        return {
+            "status": "success",
+            "message": "Gemini API is working",
+            "gemini_configured": True,
+            "test_translation": translated,
+            "original_text": test_text
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Gemini API test failed: {str(e)}",
+            "gemini_configured": True,
+            "error": str(e)
+        }
+
+@app.post("/test-translation")
+async def test_translation(payload: dict = Body(...)):
+    text = payload.get("text", "Hello, this is a test message")
+    language = payload.get("language", "hi")
+    try:
+        translated = await translate_text_unified(text, language, "test")
+        return {
+            "original": text,
+            "translated": translated,
+            "language": language,
+            "success": True
+        }
+    except Exception as e:
+        return {
+            "original": text,
+            "translated": text,
+            "language": language,
+            "success": False,
+            "error": str(e)
+        }
 
 @app.get("/")
 async def root():

@@ -17,24 +17,28 @@ export default function PriceComparisonTab() {
   const [rawAnswer, setRawAnswer] = useState('');
   const [sameProducts, setSameProducts] = useState([]);
   const [resultType, setResultType] = useState('');
+  const [actualPrices, setActualPrices] = useState([]);
 
   const handleCompare = async () => {
     setError('');
     setBlocked(false);
     setSummary('');
+    setActualPrices([]);
     if (!productName.trim()) {
-      setError('Please enter a product name.');
+      setError(t('pleaseEnterProductName'));
       return;
     }
     setLoading(true);
     try {
       const username = localStorage.getItem('username');
+      console.log('DEBUG: Sending request with language:', language); // Debug log
       const response = await fetch(`${API_CONFIG.BASE_URL}/compare-prices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_name: productName, username })
+        body: JSON.stringify({ product_name: productName, username, language })
       });
       const data = await response.json();
+      console.log('DEBUG: Received response:', data); // Debug log
       if (data.error) {
         setError(data.error);
         setLoading(false);
@@ -45,9 +49,13 @@ export default function PriceComparisonTab() {
         setLoading(false);
         return;
       }
+      // Backend now uses Gemini API to translate responses, so display directly
       setSummary(data.summary);
+      if (data.actual_prices) {
+        setActualPrices(data.actual_prices);
+      }
     } catch (e) {
-      setError('Failed to fetch price insight.');
+      setError(t('failedToFetchPriceInsight'));
     }
     setLoading(false);
   };
@@ -68,14 +76,22 @@ export default function PriceComparisonTab() {
       const response = await fetch(`${API_CONFIG.BASE_URL}/recommend-alternates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_name: productName, max_price: maxPrice, username })
+        body: JSON.stringify({ product_name: productName, max_price: maxPrice, username, language })
       });
       const data = await response.json();
       setResultType(data.type);
-      if (data.type === 'same_product' && data.products && data.products.length > 0) {
+      
+      // Handle new response format with both same products and alternates
+      if (data.type === 'both_products') {
+        setSameProducts(data.same_products || []);
+        setAlternates(data.alternates || []);
+        setRawAnswer(data.same_products_raw || data.alternates_raw || '');
+      } else if (data.type === 'same_product' && data.products && data.products.length > 0) {
+        // Handle legacy format for backward compatibility
         setSameProducts(data.products);
         setRawAnswer(data.raw_answer || '');
       } else if (data.type === 'alternates' && data.alternates && data.alternates.length > 0) {
+        // Handle legacy format for backward compatibility
         setAlternates(data.alternates);
         setRawAnswer(data.raw_answer || '');
       } else if (data.raw_answer) {
@@ -96,7 +112,7 @@ export default function PriceComparisonTab() {
         <input
           type="text"
           className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none"
-          placeholder="Enter product name..."
+          placeholder={t('enterProductNamePlaceholder')}
           value={productName}
           onChange={e => setProductName(e.target.value)}
         />
@@ -133,10 +149,43 @@ export default function PriceComparisonTab() {
               className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
               onClick={() => speak(summary, getVoiceLanguage(language))}
             >
-              🔊 Listen
+              {t('listen')}
             </button>
           </div>
-          <p className="text-gray-800 text-base">{summary}</p>
+          <p className="text-gray-800 text-base whitespace-pre-line">{summary}</p>
+          
+          {/* Display actual prices if available */}
+          {actualPrices.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('actualPricesFound')}</h4>
+              <div className="grid gap-2">
+                {actualPrices.slice(0, 5).map((price, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">₹{price.price.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500 truncate">{price.title}</div>
+                      {price.content && (
+                        <div className="text-xs text-gray-400 mt-1 line-clamp-2">{price.content}</div>
+                      )}
+                    </div>
+                    <a 
+                      href={price.source} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 text-xs hover:underline ml-2 whitespace-nowrap"
+                    >
+                      {t('viewSource')}
+                    </a>
+                  </div>
+                ))}
+              </div>
+              {actualPrices.length > 5 && (
+                <div className="text-xs text-gray-500 mt-2 text-center">
+                  {t('showingFirst5')} {actualPrices.length} {t('pricesFound')}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       {/* Alternate Recommendations */}
@@ -167,7 +216,7 @@ export default function PriceComparisonTab() {
           </div>
         )}
         {/* Show same product results if present */}
-        {resultType === 'same_product' && sameProducts.length > 0 && (
+        {(resultType === 'same_product' || resultType === 'both_products') && sameProducts.length > 0 && (
           <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded mb-4 text-green-900 mt-4">
             <div className="font-bold mb-2">{t('sameProductFound')}</div>
             <div className="grid sm:grid-cols-2 gap-6 mt-2">
@@ -185,22 +234,25 @@ export default function PriceComparisonTab() {
             {rawAnswer && (
               <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
                 <div className="flex items-center mb-1">
-                  <div className="font-medium mr-2">{t('aiRawAnswer')}</div>
+                  <div className="font-medium mr-2">{t('priceRecommendations.title')}</div>
                   <button
                     className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
                     onClick={() => speak(rawAnswer, getVoiceLanguage(language))}
                   >
-                    🔊 Listen
+                    {t('listen')}
                   </button>
                 </div>
-                <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
+                <div className="text-sm text-gray-600 mb-2">{t('priceRecommendations.subtitle')}</div>
+                <div className="whitespace-pre-line text-sm leading-relaxed">{rawAnswer}</div>
               </div>
             )}
           </div>
         )}
-        {/* Show alternates if no same product found */}
-        {resultType === 'alternates' && alternates.length > 0 && (
-          <div className="grid sm:grid-cols-2 gap-6 mt-4">
+        {/* Show alternates if available */}
+        {(resultType === 'alternates' || resultType === 'both_products') && alternates.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-lg font-semibold text-gray-800 mb-4">{resultType === 'both_products' ? 'Alternative Products' : 'Recommended Alternatives'}</h4>
+            <div className="grid sm:grid-cols-2 gap-6">
             {alternates.map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl shadow p-5 flex flex-col gap-2 border border-gray-100">
                 <div className="flex items-center justify-between mb-1">
@@ -215,18 +267,20 @@ export default function PriceComparisonTab() {
                 <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm">{t('viewProduct')}</a>
               </div>
             ))}
+            </div>
             {rawAnswer && (
               <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
                 <div className="flex items-center mb-1">
-                  <div className="font-medium mr-2">{t('aiRawAnswer')}</div>
+                  <div className="font-medium mr-2">{t('priceRecommendations.title')}</div>
                   <button
                     className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
                     onClick={() => speak(rawAnswer, getVoiceLanguage(language))}
                   >
-                    🔊 Listen
+                    {t('listen')}
                   </button>
                 </div>
-                <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
+                <div className="text-sm text-gray-600 mb-2">{t('priceRecommendations.subtitle')}</div>
+                <div className="whitespace-pre-line text-sm leading-relaxed">{rawAnswer}</div>
               </div>
             )}
           </div>
@@ -235,15 +289,16 @@ export default function PriceComparisonTab() {
         {rawAnswer && resultType && ((resultType === 'same_product' && sameProducts.length === 0) || (resultType === 'alternates' && alternates.length === 0)) && (
           <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
             <div className="flex items-center mb-1">
-              <div className="font-medium mr-2">{t('aiSuggestions')}</div>
+              <div className="font-medium mr-2">{t('priceRecommendations.title')}</div>
               <button
                 className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
                 onClick={() => speak(rawAnswer, getVoiceLanguage(language))}
               >
-                🔊 Listen
+                {t('listen')}
               </button>
             </div>
-            <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
+            <div className="text-sm text-gray-600 mb-2">{t('priceRecommendations.subtitle')}</div>
+            <div className="whitespace-pre-line text-sm leading-relaxed">{rawAnswer}</div>
           </div>
         )}
       </div>

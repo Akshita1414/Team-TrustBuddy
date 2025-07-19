@@ -10,7 +10,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
 import { translations } from '../data/translations';
 import PriceComparisonTab from './PriceComparisonTab';
-import { speak, getVoiceLanguage } from '../utils/voice';
+// Removed unused imports: speak, getVoiceLanguage
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 function t(key, lang = 'en') {
@@ -189,8 +189,8 @@ export function TrustChecker() {
     setProductLinkResult(null);
     try {
       const url = username
-        ? `${API_CONFIG.BASE_URL}/analyze-product-link?username=${encodeURIComponent(username)}`
-        : `${API_CONFIG.BASE_URL}/analyze-product-link`;
+        ? `${API_CONFIG.BASE_URL}/analyze-product-link?username=${encodeURIComponent(username)}&language=${language}`
+        : `${API_CONFIG.BASE_URL}/analyze-product-link?language=${language}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,7 +225,7 @@ export function TrustChecker() {
     setReviewError(null);
     setReviewResult(null);
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/analyze-review?username=${username}`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/analyze-review?username=${username}&language=${language}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ review_text: reviews })
@@ -338,7 +338,7 @@ export function TrustChecker() {
     setVoiceError(null);
     setVoiceResult(null);
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/analyze-review?username=${username}`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/analyze-review?username=${username}&language=${language}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ review_text: voiceText })
@@ -534,59 +534,11 @@ export function TrustChecker() {
             {t('analyzeVoiceInput', language)}
           </button>
           {voiceError && <div className="mt-4 text-red-600 font-medium">{voiceError}</div>}
-          {voiceResult && (() => {
-            let riskColor = 'bg-purple-50 border-purple-200';
-            if (voiceResult.risk_level) {
-              if (voiceResult.risk_level.toLowerCase() === 'low' || voiceResult.risk_level.toLowerCase() === 'safe') {
-                riskColor = 'bg-green-50 border-green-300';
-              } else if (voiceResult.risk_level.toLowerCase() === 'medium' || voiceResult.risk_level.toLowerCase() === 'warning') {
-                riskColor = 'bg-yellow-50 border-yellow-300';
-              } else if (voiceResult.risk_level.toLowerCase() === 'high' || voiceResult.risk_level.toLowerCase() === 'risky') {
-                riskColor = 'bg-red-50 border-red-300';
-              }
-            }
-            return (
-              <div className={`mt-8 rounded-xl p-6 border ${riskColor}`}>
-                <div className="font-bold text-lg text-purple-700">
-                  {voiceResult.confidence_score !== undefined ? `${Math.round(voiceResult.confidence_score * 100)}% ${t('confidence', language)}` : ''}
-                </div>
-                <div className="text-gray-700 mt-2 space-y-2">
-                  {typeof voiceResult === 'object' && !Array.isArray(voiceResult) ? (
-                    Object.entries(voiceResult).map(([key, value]) => (
-                      key !== 'recommendations' && (
-                        <div key={key}>
-                          <span className="font-semibold">{t(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), language)}:</span>{' '}
-                          {typeof value === 'object' && value !== null
-                            ? <pre className="bg-gray-100 rounded p-2 overflow-x-auto text-xs">{JSON.stringify(value, null, 2)}</pre>
-                            : String(value)}
-                        </div>
-                      )
-                    ))
-                  ) : (
-                    String(voiceResult)
-                  )}
-                </div>
-                {voiceResult.recommendations && Array.isArray(voiceResult.recommendations) && voiceResult.recommendations.length > 0 && (
-                  <div className="mt-6 bg-white rounded-xl shadow p-4 border border-gray-100">
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-lg font-semibold mr-2">Recommendations</h3>
-                      <button
-                        className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                        onClick={() => speak(voiceResult.recommendations.join('. '), getVoiceLanguage(language))}
-                      >
-                        🔊 Listen
-                      </button>
-                    </div>
-                    <ul className="list-disc pl-6 space-y-1 text-gray-800">
-                      {voiceResult.recommendations.map((rec, idx) => (
-                        <li key={idx}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {voiceResult && (
+            <div className="mt-8">
+              <ResultsSection analysisResult={voiceResult} />
+            </div>
+          )}
         </div>
       )
     },

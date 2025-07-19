@@ -140,16 +140,18 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               <div className={`p-4 rounded-lg border-2 ${summary.recommendation === 'Buy' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
                 <div className="flex items-center mb-1">
                   <div className="font-bold text-lg">
-                    {summary.recommendation === 'Buy' ? <span className="text-green-700">{t('Recommended to Buy')}</span> : <span className="text-red-700">{t('Not Recommended')}</span>}
+                    {/* Show the backend's translated recommendation directly */}
+                    {summary.recommendation}
                   </div>
                   <button
                     className="ml-3 px-2 py-1 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
-                    onClick={() => speak(summary.recommendation === 'Buy' ? t('recommendedToBuy') : t('notRecommended'), getVoiceLanguage(language))}
+                    onClick={() => speak(summary.recommendation, getVoiceLanguage(language))}
                   >
                     🔊 Listen
                   </button>
                 </div>
-                <div className="text-gray-700">{summary.reason}</div>
+                {/* Remove the long summary.reason from the main view */}
+                {/* <div className="text-gray-700">{summary.reason}</div> */}
                 <div className="mt-2">
                   <button
                     className="text-blue-600 text-xs underline focus:outline-none"
@@ -159,14 +161,163 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                   </button>
                 </div>
                 {showProductLinkDetails && (
-                  <div className="mt-4 bg-gray-50 border border-gray-200 rounded p-4">
-                    <pre className="text-xs text-gray-800 whitespace-pre-wrap">{JSON.stringify(productLinkResult, null, 2)}</pre>
-                    <button
-                      className="mt-2 px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                      onClick={() => speak(JSON.stringify(productLinkResult, null, 2), getVoiceLanguage(language))}
-                    >
-                      🔊 Listen to Details
-                    </button>
+                  <div className="mt-4 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                    <h4 className="font-bold text-gray-800 mb-4 text-lg">📋 Detailed Analysis Report</h4>
+                    
+                    {/* Product Information */}
+                    <div className="mb-6">
+                      <h5 className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                        <span>📦</span> Product Information
+                      </h5>
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <div className="space-y-2">
+                          <p><strong className="text-blue-800">Title:</strong> 
+                            <span className="ml-2 text-gray-700">{productLinkResult.product_title || 'Not available'}</span>
+                          </p>
+                          <p><strong className="text-blue-800">Description:</strong> 
+                            <span className="ml-2 text-gray-700">{productLinkResult.product_description || 'Not available'}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Review Analysis */}
+                    <div className="mb-6">
+                      <h5 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
+                        <span>💬</span> Review Analysis
+                      </h5>
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-green-800">Total Reviews Found:</span>
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                              Array.isArray(productLinkResult.reviews) && productLinkResult.reviews.length > 0
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {Array.isArray(productLinkResult.reviews) ? productLinkResult.reviews.length : 0}
+                            </span>
+                          </div>
+                          {Array.isArray(productLinkResult.reviews) && productLinkResult.reviews.length > 0 ? (
+                            <div>
+                              <p className="font-semibold text-green-800 mb-2">Sample Reviews:</p>
+                              <div className="space-y-2">
+                                {productLinkResult.reviews.slice(0, 3).map((review, idx) => (
+                                  <div key={idx} className="bg-white p-3 rounded border border-green-200">
+                                    <p className="text-sm text-gray-700">"{review}"</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-yellow-100 p-3 rounded border border-yellow-200">
+                              <p className="text-yellow-800 text-sm">⚠️ No customer reviews found</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Image Analysis */}
+                    <div className="mb-6">
+                      <h5 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
+                        <span>🖼️</span> Image Authenticity
+                      </h5>
+                      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        {productLinkResult.image_analysis && !productLinkResult.image_analysis.error ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-purple-800">Label:</span>
+                              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                productLinkResult.image_analysis.label === 'REAL' || productLinkResult.image_analysis.label === 'AUTHENTIC' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : productLinkResult.image_analysis.label === 'FAKE' || productLinkResult.image_analysis.label === 'AI-GENERATED'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {productLinkResult.image_analysis.label || 'UNKNOWN'}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-purple-800">Confidence:</span>
+                              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                (productLinkResult.image_analysis.confidence || 0) >= 0.7
+                                  ? 'bg-green-100 text-green-800'
+                                  : (productLinkResult.image_analysis.confidence || 0) >= 0.4
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {Math.round((productLinkResult.image_analysis.confidence || 0) * 100)}%
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">{productLinkResult.image_analysis.reason}</p>
+                          </div>
+                        ) : (
+                          <div className="bg-red-100 p-3 rounded border border-red-200">
+                            <p className="text-red-800 text-sm">❌ Image analysis failed</p>
+                            {productLinkResult.image_analysis && productLinkResult.image_analysis.error && (
+                              <p className="text-red-700 text-xs mt-1">{productLinkResult.image_analysis.error}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Final Score */}
+                    <div className="mb-6">
+                      <h5 className="font-semibold text-orange-700 mb-2 flex items-center gap-2">
+                        <span>🎯</span> Overall Assessment
+                      </h5>
+                      <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-orange-800">Final Confidence Score:</span>
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                              (productLinkResult.final_confidence_score || 0) >= 0.7
+                                ? 'bg-green-100 text-green-800'
+                                : (productLinkResult.final_confidence_score || 0) >= 0.4
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {Math.round((productLinkResult.final_confidence_score || 0) * 100)}%
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-orange-800">Recommendation:</span>
+                            <span className={`px-3 py-1 rounded-full font-semibold ${
+                              summary.recommendation === 'Buy' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {summary.recommendation}
+                            </span>
+                          </div>
+                          {summary.reason && (
+                            <div className="mt-3 p-3 bg-white rounded border border-orange-200">
+                              <p className="font-semibold text-orange-800 mb-1">Detailed Reasoning:</p>
+                              <p className="text-sm text-gray-700 leading-relaxed">{summary.reason}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Listen to Full Analysis */}
+                    <div className="text-center">
+                      <button
+                        className="px-6 py-3 rounded-lg bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition-colors shadow-sm"
+                        onClick={() => {
+                          const analysisText = `Product Analysis Report. Product: ${productLinkResult.product_title}. 
+                          Reviews found: ${Array.isArray(productLinkResult.reviews) ? productLinkResult.reviews.length : 0}. 
+                          Image analysis: ${productLinkResult.image_analysis && !productLinkResult.image_analysis.error ? productLinkResult.image_analysis.label : 'Failed'}. 
+                          Final confidence: ${Math.round((productLinkResult.final_confidence_score || 0) * 100)}%. 
+                          Recommendation: ${summary.recommendation}.`;
+                          speak(analysisText, getVoiceLanguage(language));
+                        }}
+                      >
+                        🔊 Listen to Full Analysis
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -238,13 +389,13 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               {(() => {
                 const conf = imageVerification.confidence;
                 if (!imageVerification.is_ai_generated && conf >= 0.7) {
-                  return <div className="text-green-700 font-semibold text-lg mb-2">{t('This product image looks genuine. You can buy it with confidence!')}</div>;
+                  return <div className="text-green-700 font-semibold text-lg mb-2">{t('imageLooksGenuine')}</div>;
                 } else if (!imageVerification.is_ai_generated && conf >= 0.4) {
-                  return <div className="text-yellow-700 font-semibold text-lg mb-2">{t('This image is somewhat suspicious. Please verify further before buying.')}</div>;
+                  return <div className="text-yellow-700 font-semibold text-lg mb-2">{t('imageSomewhatSuspicious')}</div>;
                 } else if (imageVerification.is_ai_generated && conf >= 0.7) {
                   return <div className="text-red-700 font-semibold text-lg mb-2">{t('warning')}</div>;
                 } else {
-                  return <div className="text-yellow-700 font-semibold text-lg mb-2">{t('This image may be AI-generated. Please verify further before buying.')}</div>;
+                  return <div className="text-yellow-700 font-semibold text-lg mb-2">{t('imageMayBeAIGenerated')}</div>;
                 }
               })()}
               <div className="w-full max-w-sm mb-4">
@@ -261,7 +412,17 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               </div>
               {imageVerification.message && (
                 <div className="text-lg text-gray-800 mt-4 text-center bg-white/80 rounded-xl px-6 py-4 border-2 border-gray-200 shadow-md font-medium">
-                  {imageVerification.message}
+                  {(() => {
+                    // Translate the message based on the label
+                    const message = imageVerification.message.toLowerCase();
+                    if (message.includes('real') || message.includes('authentic') || message.includes('original')) {
+                      return t('imageAppearsOriginal');
+                    } else if (message.includes('fake') || message.includes('ai-generated')) {
+                      return t('aiGeneratedImageDetected');
+                    } else {
+                      return imageVerification.message; // Fallback to original message
+                    }
+                  })()}
                 </div>
               )}
               <button
@@ -272,13 +433,13 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                   const recommendation = (() => {
                     const conf = imageVerification.confidence;
                     if (!imageVerification.is_ai_generated && conf >= 0.7) {
-                      return t('This product image looks genuine. You can buy it with confidence!');
+                      return t('imageLooksGenuine');
                     } else if (!imageVerification.is_ai_generated && conf >= 0.4) {
-                      return t('This image is somewhat suspicious. Please verify further before buying.');
+                      return t('imageSomewhatSuspicious');
                     } else if (imageVerification.is_ai_generated && conf >= 0.7) {
-                      return t('Warning: This image is likely AI-generated. Be cautious before purchasing.');
+                      return t('warning');
                     } else {
-                      return t('This image may be AI-generated. Please verify further before buying.');
+                      return t('imageMayBeAIGenerated');
                     }
                   })();
                   speak(`${status}. ${t('confidence')}: ${confidence}${t('percent')}. ${recommendation}`, getVoiceLanguage(language));

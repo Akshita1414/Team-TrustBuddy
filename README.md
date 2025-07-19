@@ -10,6 +10,9 @@ TrustBuddy is a comprehensive fake review detection system that uses AI and mach
 - **Visual Badge System**: Color-coded risk assessment (Green/Yellow/Red)
 - **Detailed Breakdown**: Comprehensive analysis with specific recommendations
 - **Multi-language Support**: Support for English, Hindi, Spanish, and French
+- **Dynamic Translation**: Gemini API integration for real-time language translation
+- **Price Comparison**: Real-time price analysis with multilingual support
+- **Product Recommendations**: AI-powered alternative product suggestions
 
 ## Project Structure
 
@@ -62,7 +65,18 @@ trustbuddy/
    pip install -r requirements.txt
    ```
 
-4. **Start the backend server:**
+4. **Set up environment variables:**
+   ```bash
+   # Copy the example environment file
+   cp env.example .env
+   
+   # Edit .env and add your API keys:
+   # GEMINI_API_KEY=your_gemini_api_key_here
+   # MONGO_URL=your_mongo_url_here
+   # TAVILY_API_KEY=your_tavily_api_key_here
+   ```
+
+5. **Start the backend server:**
    ```bash
    python main.py
    ```
@@ -111,9 +125,24 @@ trustbuddy/
 ### Backend API (http://localhost:8000)
 
 - `POST /analyze-review` - Analyze a review for authenticity
+- `POST /compare-prices` - Compare product prices with multilingual support
+- `POST /recommend-alternates` - Get alternative product recommendations
 - `GET /health` - Health check endpoint
 - `GET /api/info` - API information and capabilities
 - `GET /docs` - Interactive API documentation (Swagger UI)
+
+### Gemini API Integration
+
+The backend uses Google's Gemini API for dynamic translation of responses. This ensures that:
+
+- Price analysis is generated in the user's selected language
+- Product recommendations are translated appropriately
+- All text responses are contextually translated
+- Product names and prices remain unchanged during translation
+
+To use this feature, you need to:
+1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Add it to your `.env` file as `GEMINI_API_KEY=your_key_here`
 
 ### Example API Request
 
