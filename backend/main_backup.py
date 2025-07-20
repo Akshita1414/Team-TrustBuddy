@@ -823,7 +823,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                     "reason": "Product has positive reviews and authentic images. Consider purchasing."
                 }
             elif has_reviews:
-                    summary = {
+                summary = {
                     "recommendation": "Consider",
                     "reason": "Product has reviews but image analysis is limited. Proceed with caution."
                 }
@@ -831,7 +831,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                 summary = {
                     "recommendation": "Buy",
                     "reason": "Product images appear authentic. Consider purchasing."
-                    }
+                }
             else:
                 summary = {
                     "recommendation": "Manual Review",
@@ -994,52 +994,13 @@ async def compare_prices(payload: dict = Body(...)):
         return {"error": "Product name required."}
     
     api_key = os.getenv("TAVILY_API_KEY")
-    print(f"DEBUG: Tavily API key status: {'SET' if api_key else 'NOT SET'}")
-    if api_key:
-        print(f"DEBUG: Tavily API key starts with: {api_key[:10]}...")
-    else:
-        print("DEBUG: TAVILY_API_KEY not found in environment variables")
     
     try:
-        # Test connectivity first
-        import socket
-        try:
-            socket.gethostbyname('api.tavily.com')
-            print("DEBUG: DNS resolution successful for api.tavily.com")
-        except socket.gaierror as e:
-            print(f"DEBUG: DNS resolution failed for api.tavily.com: {e}")
-            return {
-                "summary": f"Network connectivity issue: Cannot reach Tavily API servers. Please check your internet connection.",
-                "actual_prices": []
-            }
-        
-        # Test API key with a simple call
-        try:
-            test_response = requests.post(
-                "https://api.tavily.com/search",
-                headers={"Content-Type": "application/json"},
-                json={
-                    "api_key": api_key,
-                    "query": "test",
-                    "search_depth": "basic",
-                    "max_results": 1
-                },
-                timeout=10
-            )
-            print(f"DEBUG: API key test - Status: {test_response.status_code}")
-            if test_response.status_code == 200:
-                print("DEBUG: API key is working correctly")
-            else:
-                print(f"DEBUG: API key test failed: {test_response.text}")
-        except Exception as e:
-            print(f"DEBUG: API key test failed with exception: {e}")
-        
         # Simplified search queries for faster response
         search_queries = [
-            f'"{product_name}" price ₹',
-            f'"{product_name}" buy online price',
-            f'"{product_name}" amazon flipkart price',
-            f'"{product_name}" online shopping price'
+            f'"{product_name}" price ₹ site:amazon.in',
+            f'"{product_name}" price ₹ site:flipkart.com',
+            f'"{product_name}" price ₹ site:meesho.com'
         ]
         
         actual_prices = []
@@ -1068,7 +1029,8 @@ async def compare_prices(payload: dict = Body(...)):
                             "query": query,
                             "search_depth": "basic",  # Changed to basic for speed
                             "include_answer": True,
-                            "max_results": 10,  # Increased for better coverage
+                            "include_domains": ["amazon.in", "flipkart.com", "meesho.com"],
+                            "max_results": 5,  # Reduced for speed
                             "include_raw_content": True
                         },
                         timeout=30  # Increased timeout for better reliability
@@ -1124,6 +1086,10 @@ async def compare_prices(payload: dict = Body(...)):
                                         # Clean the match to extract just the number
                                         price_str = re.sub(r'[^\d,]', '', str(match))
                                         price = int(price_str.replace(",", ""))
+                                        
+                                        # Skip if this looks like cashback (usually smaller amounts)
+                                        if price < 1000:  # Skip very small amounts that might be cashback
+                                            continue
                                         
                                         # Enhanced price validation based on product type
                                         is_valid_price = True
@@ -1193,8 +1159,7 @@ async def compare_prices(payload: dict = Body(...)):
             fallback_queries = [
                 f"{product_name} price",
                 f"{product_name} buy online",
-                f"{product_name} shopping",
-                f"{product_name} online price"
+                f"{product_name} amazon flipkart"
             ]
             
             for query in fallback_queries:
@@ -1206,16 +1171,16 @@ async def compare_prices(payload: dict = Body(...)):
                         json={
                             "api_key": api_key,
                             "query": query,
-                            "search_depth": "basic",
+            "search_depth": "basic",
                             "include_answer": True,
                             "max_results": 3,
                             "include_raw_content": True
-                        },
+        },
                         timeout=20
-                    )
+    )
                     
                     if response.status_code == 200:
-                        data = response.json()
+    data = response.json()
                         results = data.get("results", [])
                         
                         for result in results:
@@ -1229,6 +1194,9 @@ async def compare_prices(payload: dict = Body(...)):
                             for match in price_matches:
                                 try:
                                     price = int(match.replace(",", ""))
+                                    # Skip cashback amounts (usually smaller)
+                                    if price < 1000:
+                                        continue
                                     if 100 <= price <= 100000:  # Basic validation
                                         actual_prices.append({
                                             "price": price,
@@ -1298,25 +1266,25 @@ async def compare_prices(payload: dict = Body(...)):
             print(f"DEBUG: No prices found, using Gemini fallback")
             enhanced_summary = await generate_analysis_with_gemini(product_name, language)
         
-        # Save to user history if username is provided
-        if username:
-            from datetime import datetime
-            users_collection.update_one(
-                {"username": username},
-                {"$push": {"history": {
-                    "type": "price_comparison",
-                    "product_name": product_name,
+    # Save to user history if username is provided
+    if username:
+        from datetime import datetime
+        users_collection.update_one(
+            {"username": username},
+            {"$push": {"history": {
+                "type": "price_comparison",
+                "product_name": product_name,
                     "summary": enhanced_summary,
                     "actual_prices": unique_prices,
-                    "timestamp": datetime.utcnow().isoformat()
-                }}}
-            )
-        
-        return {
-            "summary": enhanced_summary,
-            "actual_prices": unique_prices
-        }
+                "timestamp": datetime.utcnow().isoformat()
+            }}}
+        )
             
+            return {
+                "summary": enhanced_summary,
+                "actual_prices": unique_prices
+            }
+                
     except Exception as e:
         return {
             "summary": f"Error analyzing prices for {product_name}: {str(e)}",
@@ -1331,11 +1299,6 @@ async def recommend_alternates(payload: dict = Body(...)):
     if not product_name or not max_price:
         return {"error": "Product name and max_price required."}
     api_key = os.getenv("TAVILY_API_KEY")
-    print(f"DEBUG: Tavily API key status (alternates): {'SET' if api_key else 'NOT SET'}")
-    if api_key:
-        print(f"DEBUG: Tavily API key starts with: {api_key[:10]}...")
-    else:
-        print("DEBUG: TAVILY_API_KEY not found in environment variables")
     
     import re
     from datetime import datetime
@@ -1345,38 +1308,38 @@ async def recommend_alternates(payload: dict = Body(...)):
         max_price_val = None
 
     # Very simple prompt for fast response
-    prompt = f"Find {product_name} under ₹{max_price} price alternatives similar products"
+    prompt = f"Find {product_name} price ₹{max_price} amazon flipkart meesho"
     
     try:
         response = requests.post(
-            "https://api.tavily.com/search",
-            headers={"Content-Type": "application/json"},
-            json={
-                "api_key": api_key,
+        "https://api.tavily.com/search",
+        headers={"Content-Type": "application/json"},
+        json={
+            "api_key": api_key,
                 "query": prompt,
-                "search_depth": "basic",
+            "search_depth": "basic",
                 "include_answer": True,
                 "max_results": 5,  # Increased to get more options
-                "include_raw_content": True
-            },
+                "include_domains": ["amazon.in", "flipkart.com", "meesho.com"]
+        },
             timeout=8  # Very fast timeout
-        )
+    )
         
         data = response.json()
         answer = data.get("answer") or data.get("summary") or ""
         
-        # Parse results into same products and alternates
-        same_products = []
+                # Parse results into same products and alternates
+    same_products = []
         alternates = []
         
         # Simple pattern for parsing
         pattern = re.compile(r"([\w\s\-\+]+)[\s\:\|\-]+₹?(\d+[,.]?\d*)[\s\:\|\-]+([\w\s]+)", re.IGNORECASE)
         for match in pattern.finditer(answer):
             name, price, retailer = match.groups()
-            try:
-                price_val = float(price.replace(",", ""))
-            except:
-                price_val = None
+        try:
+            price_val = float(price.replace(",", ""))
+        except:
+            price_val = None
                     
             if price_val is not None and max_price_val is not None:
                 # Enhanced price validation
@@ -1402,10 +1365,10 @@ async def recommend_alternates(payload: dict = Body(...)):
                 
                 if is_valid_price:
                     product_data = {
-                        "name": name.strip(),
-                        "price": price_val,
-                        "retailer": retailer.strip(),
-                        "link": ""  # Simplified - no link parsing
+                "name": name.strip(),
+                "price": price_val,
+                        "retailer": retailer.strip()
+                        # Removed link field completely
                     }
                     
                     # Check if it's the same product (contains product name keywords)
@@ -1414,32 +1377,23 @@ async def recommend_alternates(payload: dict = Body(...)):
                         same_products.append(product_data)
                     elif price_val < max_price_val:
                         # Calculate score for alternates
-                        if max_price_val > 0:
-                            ratio = price_val / max_price_val
+            if max_price_val > 0:
+                ratio = price_val / max_price_val
                             score = 5 if ratio <= 0.4 else 4 if ratio <= 0.6 else 3 if ratio <= 0.8 else 2 if ratio <= 0.95 else 1
-                        else:
-                            score = 1
+                else:
+                    score = 1
                         product_data["price_score"] = score
                         alternates.append(product_data)
         
         # Sort results
         same_products.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
-        alternates.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
+    alternates.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
         
-        # Limit to exactly 3 alternative products without any links
+        # Limit to 3 alternative products
         alternates = alternates[:3]
         
-        # Ensure all alternate products have no links
-        for product in alternates:
-            product["link"] = ""
-            # Remove any other link-related fields
-            if "url" in product:
-                del product["url"]
-            if "source" in product:
-                del product["source"]
-        
         # Save to user history
-        if username:
+    if username:
             history_data = {
                 "type": "same_product_found" if same_products else "alternate_products",
                 "product_name": product_name,
@@ -1457,7 +1411,7 @@ async def recommend_alternates(payload: dict = Body(...)):
                 {"$push": {"history": history_data}}
             )
         
-        # Return results
+                # Return results
         if same_products:
             return {"type": "same_product", "products": same_products, "raw_answer": answer}
         elif alternates:

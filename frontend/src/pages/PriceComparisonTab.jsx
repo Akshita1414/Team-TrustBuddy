@@ -374,27 +374,16 @@ export default function PriceComparisonTab() {
               )}
               <div className="grid sm:grid-cols-2 gap-6 mt-2">
                 {sameProducts.map((item, idx) => (
-                  <a 
+                  <div 
                     key={idx} 
-                    href={item.link} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="block bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-green-300 hover:scale-[1.02] group cursor-pointer"
+                    className="block bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-green-300 hover:scale-[1.02] group"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="font-semibold text-base text-gray-800 group-hover:text-green-600 transition-colors line-clamp-2">{item.name}</span>
                       <span className="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm flex-shrink-0">{item.retailer}</span>
                     </div>
                     <div className="text-2xl font-bold text-green-600 mb-3 group-hover:text-green-700 transition-colors">₹ {item.price.toLocaleString()}</div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-green-600 text-sm font-medium group-hover:text-green-700 transition-colors">View Product →</span>
-                      <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </div>
-                    </div>
-                  </a>
+                  </div>
                 ))}
               </div>
               {rawAnswer && (
@@ -418,12 +407,9 @@ export default function PriceComparisonTab() {
                 </div>
               )}
               {alternates.map((item, idx) => (
-                <a 
+                <div 
                   key={idx} 
-                  href={item.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-blue-300 hover:scale-[1.02] group cursor-pointer"
+                  className="block bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-blue-300 hover:scale-[1.02] group"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-semibold text-base text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-2">{item.name}</span>
@@ -436,15 +422,7 @@ export default function PriceComparisonTab() {
                     </span>
                     <span className="text-yellow-400 text-base">{'★'.repeat(item.price_score)}{'☆'.repeat(5 - item.price_score)}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-blue-600 text-sm font-medium group-hover:text-blue-700 transition-colors">View Product →</span>
-                    <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </div>
-                  </div>
-                </a>
+                </div>
               ))}
               {rawAnswer && (
                 <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
