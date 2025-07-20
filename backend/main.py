@@ -1005,99 +1005,133 @@ async def compare_prices(payload: dict = Body(...)):
         
         actual_prices = []
         
+        # Add retry logic for better reliability
+        max_retries = 3  # Increased retries
+        
+        # Add a small delay before first API call to avoid rate limiting
+        import time
+        time.sleep(0.5)
+        
         for query in search_queries:
-            try:
-                response = requests.post(
-                    "https://api.tavily.com/search",
-                    headers={"Content-Type": "application/json"},
-                    json={
-                        "api_key": api_key,
-                        "query": query,
-                        "search_depth": "basic",  # Changed to basic for speed
-                        "include_answer": True,
-                        "include_domains": ["amazon.in", "flipkart.com", "meesho.com"],
-                        "max_results": 5,  # Reduced for speed
-                        "include_raw_content": True
-                    },
-                    timeout=15  # Reduced timeout
-                )
-                
-                data = response.json()
-                results = data.get("results", [])
-                
-                for result in results:
-                    content = result.get("content", "")
-                    url = result.get("url", "")
-                    title = result.get("title", "")
-                    raw_content = result.get("raw_content", "")
+            for attempt in range(max_retries):
+                try:
+                    print(f"DEBUG: Searching query: {query} (attempt {attempt + 1})")
                     
-                    # Extract prices with better validation
-                    import re
-                    price_patterns = [
-                        r"₹\s*([\d,]+)",
-                        r"Rs\.?\s*([\d,]+)",
-                        r"price[:\s]*₹?\s*([\d,]+)",
-                        r"cost[:\s]*₹?\s*([\d,]+)",
-                        r"MRP[:\s]*₹?\s*([\d,]+)",
-                        r"(\d{4,})\s*₹",
-                        r"₹\s*(\d{1,3}(?:,\d{3})*)",
-                        r"buy\s+now[:\s]*₹?\s*([\d,]+)",
-                        r"offer\s+price[:\s]*₹?\s*([\d,]+)",
-                        r"current\s+price[:\s]*₹?\s*([\d,]+)",
-                        r"(\d{4,})\s*(?:INR|₹|Rs)",
-                        r"price[:\s]*(\d{4,})",
-                        r"cost[:\s]*(\d{4,})"
-                    ]
+                    # Add delay between retries
+                    if attempt > 0:
+                        time.sleep(1)
                     
-                    # Search in both processed content and raw HTML
-                    search_contents = [content]
-                    if raw_content:
-                        search_contents.append(raw_content)
+                    response = requests.post(
+                        "https://api.tavily.com/search",
+                        headers={"Content-Type": "application/json"},
+                        json={
+                            "api_key": api_key,
+                            "query": query,
+                            "search_depth": "basic",  # Changed to basic for speed
+                            "include_answer": True,
+                            "include_domains": ["amazon.in", "flipkart.com", "meesho.com"],
+                            "max_results": 5,  # Reduced for speed
+                            "include_raw_content": True
+                        },
+                        timeout=30  # Increased timeout for better reliability
+                    )
                     
-                    for search_content in search_contents:
-                        for pattern in price_patterns:
-                            matches = re.findall(pattern, search_content, re.IGNORECASE)
-                            for match in matches:
-                                try:
-                                    # Clean the match to extract just the number
-                                    price_str = re.sub(r'[^\d,]', '', str(match))
-                                    price = int(price_str.replace(",", ""))
-                                    
-                                    # Enhanced price validation based on product type
-                                    is_valid_price = True
-                                    
-                                    # Check for unrealistic prices based on product keywords
-                                    product_lower = product_name.lower()
-                                    if any(keyword in product_lower for keyword in ['laptop', 'macbook', 'computer', 'pc']):
-                                        if price < 20000 or price > 500000:  # Laptops should be 20k-5L
-                                            is_valid_price = False
-                                    elif any(keyword in product_lower for keyword in ['phone', 'mobile', 'iphone', 'samsung']):
-                                        if price < 5000 or price > 200000:  # Phones should be 5k-2L
-                                            is_valid_price = False
-                                    elif any(keyword in product_lower for keyword in ['tv', 'television']):
-                                        if price < 8000 or price > 300000:  # TVs should be 8k-3L
-                                            is_valid_price = False
-                                    elif any(keyword in product_lower for keyword in ['headphone', 'earphone', 'speaker', 'audio']):
-                                        if price < 500 or price > 50000:  # Audio should be 500-50k
-                                            is_valid_price = False
-                                    else:
-                                        # General validation for other products
-                                        if price < 100 or price > 100000:  # General range 100-1L
-                                            is_valid_price = False
-                                    
-                                    if is_valid_price:
-                                        actual_prices.append({
-                                            "price": price,
-                                            "source": url,
-                                            "title": title,
-                                            "content": content[:200]  # First 200 chars for context
-                                        })
-                                except:
-                                    continue
-                                
-            except Exception as e:
-                print(f"Error searching {query}: {str(e)}")
-                continue
+                    if response.status_code != 200:
+                        print(f"DEBUG: Tavily API error {response.status_code}: {response.text}")
+                        if attempt < max_retries - 1:
+                            print(f"DEBUG: Retrying...")
+                            continue
+                        else:
+                            break
+                    
+                    data = response.json()
+                    results = data.get("results", [])
+                    print(f"DEBUG: Found {len(results)} results for query: {query}")
+                    
+                    # Process results to extract prices
+                    for result in results:
+                        content = result.get("content", "")
+                        url = result.get("url", "")
+                        title = result.get("title", "")
+                        raw_content = result.get("raw_content", "")
+                        
+                        # Extract prices with better validation
+                        import re
+                        price_patterns = [
+                            r"₹\s*([\d,]+)",
+                            r"Rs\.?\s*([\d,]+)",
+                            r"price[:\s]*₹?\s*([\d,]+)",
+                            r"cost[:\s]*₹?\s*([\d,]+)",
+                            r"MRP[:\s]*₹?\s*([\d,]+)",
+                            r"(\d{4,})\s*₹",
+                            r"₹\s*(\d{1,3}(?:,\d{3})*)",
+                            r"buy\s+now[:\s]*₹?\s*([\d,]+)",
+                            r"offer\s+price[:\s]*₹?\s*([\d,]+)",
+                            r"current\s+price[:\s]*₹?\s*([\d,]+)",
+                            r"(\d{4,})\s*(?:INR|₹|Rs)",
+                            r"price[:\s]*(\d{4,})",
+                            r"cost[:\s]*(\d{4,})"
+                        ]
+                        
+                        # Search in both processed content and raw HTML
+                        search_contents = [content]
+                        if raw_content:
+                            search_contents.append(raw_content)
+                        
+                        for search_content in search_contents:
+                            for pattern in price_patterns:
+                                matches = re.findall(pattern, search_content, re.IGNORECASE)
+                                for match in matches:
+                                    try:
+                                        # Clean the match to extract just the number
+                                        price_str = re.sub(r'[^\d,]', '', str(match))
+                                        price = int(price_str.replace(",", ""))
+                                        
+                                        # Enhanced price validation based on product type
+                                        is_valid_price = True
+                                        
+                                        # Check for unrealistic prices based on product keywords
+                                        product_lower = product_name.lower()
+                                        if any(keyword in product_lower for keyword in ['laptop', 'macbook', 'computer', 'pc']):
+                                            if price < 20000 or price > 500000:  # Laptops should be 20k-5L
+                                                is_valid_price = False
+                                        elif any(keyword in product_lower for keyword in ['phone', 'mobile', 'iphone', 'samsung']):
+                                            if price < 5000 or price > 200000:  # Phones should be 5k-2L
+                                                is_valid_price = False
+                                        elif any(keyword in product_lower for keyword in ['tv', 'television']):
+                                            if price < 8000 or price > 300000:  # TVs should be 8k-3L
+                                                is_valid_price = False
+                                        elif any(keyword in product_lower for keyword in ['headphone', 'earphone', 'speaker', 'audio']):
+                                            if price < 500 or price > 50000:  # Audio should be 500-50k
+                                                is_valid_price = False
+                                        else:
+                                            # General validation for other products
+                                            if price < 100 or price > 100000:  # General range 100-1L
+                                                is_valid_price = False
+                                        
+                                        if is_valid_price:
+                                            actual_prices.append({
+                                                "price": price,
+                                                "source": url,
+                                                "title": title,
+                                                "content": content[:200]  # First 200 chars for context
+                                            })
+                                            print(f"DEBUG: Found valid price: ₹{price} from {url}")
+                                    except Exception as e:
+                                        print(f"DEBUG: Error processing price match: {e}")
+                                        continue
+                    
+                    # If we got results, break out of retry loop
+                    if results:
+                        break
+                        
+                except Exception as e:
+                    print(f"Error searching {query} (attempt {attempt + 1}): {str(e)}")
+                    if attempt < max_retries - 1:
+                        print(f"DEBUG: Retrying...")
+                        continue
+                    else:
+                        break
         
         # Remove duplicates and sort by price
         unique_prices = []
@@ -1112,6 +1146,81 @@ async def compare_prices(payload: dict = Body(...)):
         
         # Limit to first 5 results for performance
         unique_prices = unique_prices[:5]
+        
+        print(f"DEBUG: Final unique prices found: {len(unique_prices)}")
+        
+        # If no prices found, try simpler search queries as fallback
+        if not unique_prices:
+            print(f"DEBUG: No prices found with complex queries, trying simpler fallback queries")
+            fallback_queries = [
+                f"{product_name} price",
+                f"{product_name} buy online",
+                f"{product_name} amazon flipkart"
+            ]
+            
+            for query in fallback_queries:
+                try:
+                    print(f"DEBUG: Trying fallback query: {query}")
+                    response = requests.post(
+                        "https://api.tavily.com/search",
+                        headers={"Content-Type": "application/json"},
+                        json={
+                            "api_key": api_key,
+                            "query": query,
+                            "search_depth": "basic",
+                            "include_answer": True,
+                            "max_results": 3,
+                            "include_raw_content": True
+                        },
+                        timeout=20
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        results = data.get("results", [])
+                        
+                        for result in results:
+                            content = result.get("content", "")
+                            url = result.get("url", "")
+                            title = result.get("title", "")
+                            
+                            # Simple price extraction for fallback
+                            import re
+                            price_matches = re.findall(r"₹\s*([\d,]+)", content, re.IGNORECASE)
+                            for match in price_matches:
+                                try:
+                                    price = int(match.replace(",", ""))
+                                    if 100 <= price <= 100000:  # Basic validation
+                                        actual_prices.append({
+                                            "price": price,
+                                            "source": url,
+                                            "title": title,
+                                            "content": content[:200]
+                                        })
+                                        print(f"DEBUG: Found fallback price: ₹{price} from {url}")
+                                except:
+                                    continue
+                        
+                        if actual_prices:
+                            break
+                            
+                except Exception as e:
+                    print(f"DEBUG: Fallback query failed: {e}")
+                    continue
+            
+            # Update unique_prices with fallback results
+            if actual_prices:
+                unique_prices = []
+                seen_prices = set()
+                for price_data in actual_prices:
+                    price_key = (price_data["price"], price_data["source"])
+                    if price_key not in seen_prices:
+                        seen_prices.add(price_key)
+                        unique_prices.append(price_data)
+                
+                unique_prices.sort(key=lambda x: x["price"])
+                unique_prices = unique_prices[:5]
+                print(f"DEBUG: Found {len(unique_prices)} prices from fallback queries")
         
         # Step 2: Generate specific analysis based on found prices
         if unique_prices:
@@ -1147,6 +1256,7 @@ async def compare_prices(payload: dict = Body(...)):
             
         else:
             # No prices found, use Gemini API for analysis
+            print(f"DEBUG: No prices found, using Gemini fallback")
             enhanced_summary = await generate_analysis_with_gemini(product_name, language)
         
         # Save to user history if username is provided
