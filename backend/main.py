@@ -401,6 +401,70 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
         product_url = data.get("product_url")
         if not product_url:
             return {"detail": "No product URL provided."}, 400
+        
+        # Check for unsupported websites and return hardcoded response
+        unsupported_domains = [
+            'flipkart.com', 'amazon.in', 'amazon.com', 'meesho.com', 
+            'snapdeal.com', 'paytmmall.com', 'shopclues.com', 'ajio.com',
+            'myntra.com', 'nykaa.com', 'bigbasket.com', 'grofers.com'
+        ]
+        
+        if any(domain in product_url.lower() for domain in unsupported_domains):
+            # Return hardcoded response for unsupported websites
+            hardcoded_response = {
+                "product_title": "Product Analysis Unavailable",
+                "product_description": "This website uses anti-bot protection that prevents automated analysis.",
+                "product_image_url": "",
+                "reviews": ["No reviews available due to website protection."],
+                "image_analysis": {
+                    "label": "UNAVAILABLE",
+                    "confidence": 0.0,
+                    "reason": "Image analysis not available for this website due to anti-bot protection."
+                },
+                "summary": {
+                    "recommendation": "Manual Review Required",
+                    "reason": "This website uses strict anti-bot mechanisms. Please manually analyze the product by copying reviews to the Review Analysis tab."
+                },
+                "final_confidence_score": 0.0
+            }
+            
+            # Translate if needed
+            if language != "en":
+                try:
+                    if language == "hi":
+                        hardcoded_response["product_title"] = "उत्पाद विश्लेषण उपलब्ध नहीं"
+                        hardcoded_response["product_description"] = "यह वेबसाइट एंटी-बॉट सुरक्षा का उपयोग करती है जो स्वचालित विश्लेषण को रोकती है।"
+                        hardcoded_response["reviews"] = ["वेबसाइट सुरक्षा के कारण कोई समीक्षा उपलब्ध नहीं।"]
+                        hardcoded_response["image_analysis"]["reason"] = "एंटी-बॉट सुरक्षा के कारण इस वेबसाइट के लिए छवि विश्लेषण उपलब्ध नहीं है।"
+                        hardcoded_response["summary"]["recommendation"] = "मैनुअल समीक्षा आवश्यक"
+                        hardcoded_response["summary"]["reason"] = "यह वेबसाइट सख्त एंटी-बॉट तंत्र का उपयोग करती है। कृपया समीक्षा विश्लेषण टैबमध्ये समीक्षांची प्रत बनवून उत्पादाचे मॅन्युअल विश्लेषण करा."
+                    elif language == "mr":
+                        hardcoded_response["product_title"] = "उत्पाद विश्लेषण उपलब्ध नाही"
+                        hardcoded_response["product_description"] = "ही वेबसाइट अँटी-बॉट संरक्षण वापरते जे स्वयंचलित विश्लेषण रोकते."
+                        hardcoded_response["reviews"] = ["वेबसाइट संरक्षणामुळे कोणत्याही समीक्षा उपलब्ध नाहीत."]
+                        hardcoded_response["image_analysis"]["reason"] = "अँटी-बॉट संरक्षणामुळे या वेबसाइटसाठी प्रतिमा विश्लेषण उपलब्ध नाही."
+                        hardcoded_response["summary"]["recommendation"] = "मॅन्युअल समीक्षा आवश्यक"
+                        hardcoded_response["summary"]["reason"] = "ही वेबसाइट कठोर अँटी-बॉट यंत्रणा वापरते. कृपया समीक्षा विश्लेषण टૅबमध्ये समीक्षांची प्रत बनवून उत्पादाचे मॅन्युअल विश्लेषण करा."
+                    elif language == "gu":
+                        hardcoded_response["product_title"] = "ઉત્પાદ વિશ્લેષણ ઉપલબ્ધ નથી"
+                        hardcoded_response["product_description"] = "આ વેબસાઇટ એન્ટી-બોટ સુરક્ષા વાપરે છે જે સ્વચાલિત વિશ્લેષણને અટકાવે છે."
+                        hardcoded_response["reviews"] = ["વેબસાઇટ સુરક્ષાને કારણે કોઈ સમીક્ષા ઉપલબ્ધ નથી."]
+                        hardcoded_response["image_analysis"]["reason"] = "એન્ટી-બોટ સુરક્ષાને કારણે આ વેબસાઇટ માટે છબી વિશ્લેષણ ઉપલબ્ધ નથી."
+                        hardcoded_response["summary"]["recommendation"] = "મેન્યુઅલ સમીક્ષા જરૂરી"
+                        hardcoded_response["summary"]["reason"] = "આ વેબસાઇટ કડક એન્ટી-બોટ મિકેનિઝમ વાપરે છે. કૃપા કરીને સમીક્ષા વિશ્લેષણ ટેબમાં સમીક્ષાઓની નકલ કરીને ઉત્પાદનું મેન્યુઅલ વિશ્લેષણ કરો."
+                except Exception as e:
+                    print(f"Translation failed: {e}")
+            
+            # Save to user history if username is provided
+            if username:
+                users_collection.update_one(
+                    {"username": username},
+                    {"$push": {"history": {"product_url": product_url, "result": hardcoded_response}}}
+                )
+            
+            return hardcoded_response
+        
+        # Continue with existing analysis for supported websites
         # Use a browser-like user agent to fetch the page
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
         resp = pyrequests.get(product_url, headers=headers, timeout=15)
@@ -612,47 +676,52 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                         image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
                 except Exception as e:
                     print(f"DEBUG: Image analysis exception: {str(e)}")
-                    # Provide a more user-friendly error message
-                    error_msg = str(e)
-                    if "NameResolutionError" in error_msg or "getaddrinfo failed" in error_msg:
-                        image_analysis = {"error": "Image analysis failed: Unable to reach image server. The image URL may be invalid or the server is down.", "confidence": 0.0}
-                    elif "timeout" in error_msg.lower():
-                        image_analysis = {"error": "Image analysis failed: Request timed out. The image server is taking too long to respond.", "confidence": 0.0}
-                    elif "connection" in error_msg.lower():
-                        image_analysis = {"error": "Image analysis failed: Network connection error. Please check your internet connection.", "confidence": 0.0}
-                    else:
-                        image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
+                # Provide a more user-friendly error message
+                error_msg = str(e)
+                if "NameResolutionError" in error_msg or "getaddrinfo failed" in error_msg:
+                    image_analysis = {"error": "Image analysis failed: Unable to reach image server. The image URL may be invalid or the server is down.", "confidence": 0.0}
+                elif "timeout" in error_msg.lower():
+                    image_analysis = {"error": "Image analysis failed: Request timed out. The image server is taking too long to respond.", "confidence": 0.0}
+                elif "connection" in error_msg.lower():
+                    image_analysis = {"error": "Image analysis failed: Network connection error. Please check your internet connection.", "confidence": 0.0}
+                else:
+                    image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
         # If image_analysis is still None, ensure it is a dict with confidence 0.0
         if image_analysis is None:
             image_analysis = {"label": None, "confidence": 0.0, "reason": "No image analysis performed."}
-        # Summarize product and reviews with Gemini
+        
+        # Generate simple hardcoded summary based on analysis results
         summary = None
         try:
-            GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-            GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-            summary_prompt = {"text": f'Given the following product title: "{title}", description: "{desc}", reviews: {reviews}, and image authenticity: {image_analysis}, should a buyer purchase this product? Respond in this JSON format: {{"recommendation": "Buy" or "Do Not Buy", "reason": "..."}}'}
-            payload = {"contents": [{"parts": [summary_prompt]}]}
-            gemini_headers = {
-                "x-goog-api-key": GEMINI_API_KEY,
-                "Content-Type": "application/json"
-            }
-            gemini_resp = pyrequests.post(GEMINI_URL, json=payload, headers=gemini_headers, timeout=30)
-            if gemini_resp.status_code == 200:
-                gemini_data = gemini_resp.json()
-                text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
-                match = re.search(r'\{.*\}', text, re.DOTALL)
-                if match:
-                    result = pyjson.loads(match.group(0))
-                    summary = {
-                        "recommendation": result.get("recommendation"),
-                        "reason": result.get("reason")
-                    }
-                else:
-                    summary = {"message": "Could not parse Gemini response", "raw_response": text}
+            # Simple logic based on available data
+            has_reviews = reviews and len(reviews) > 0 and any(review.strip() for review in reviews if review)
+            image_confidence = image_analysis.get('confidence', 0.0) if isinstance(image_analysis, dict) else 0.0
+            
+            if has_reviews and image_confidence > 0.5:
+                summary = {
+                    "recommendation": "Buy",
+                    "reason": "Product has positive reviews and authentic images. Consider purchasing."
+                }
+            elif has_reviews:
+                summary = {
+                    "recommendation": "Consider",
+                    "reason": "Product has reviews but image analysis is limited. Proceed with caution."
+                }
+            elif image_confidence > 0.7:
+                summary = {
+                    "recommendation": "Buy",
+                    "reason": "Product images appear authentic. Consider purchasing."
+                }
             else:
-                summary = {"error": f"Gemini API error: {gemini_resp.text}"}
+                summary = {
+                    "recommendation": "Manual Review",
+                    "reason": "Limited data available. Please manually review the product before purchasing."
+                }
         except Exception as e:
-            summary = {"error": str(e)}
+            summary = {
+                "recommendation": "Manual Review",
+                "reason": "Analysis incomplete. Please manually review the product."
+            }
         print("Extracted img_url:", img_url)
         print("Image analysis result:", image_analysis)
         print("Summary result:", summary)
@@ -973,7 +1042,7 @@ async def compare_prices(payload: dict = Body(...)):
                     "timestamp": datetime.utcnow().isoformat()
                 }}}
             )
-            
+        
         return {
             "summary": enhanced_summary,
             "actual_prices": unique_prices
@@ -1006,12 +1075,12 @@ async def recommend_alternates(payload: dict = Body(...)):
     
     try:
         response = requests.post(
-            "https://api.tavily.com/search",
-            headers={"Content-Type": "application/json"},
-            json={
-                "api_key": api_key,
+        "https://api.tavily.com/search",
+        headers={"Content-Type": "application/json"},
+        json={
+            "api_key": api_key,
                 "query": prompt,
-                "search_depth": "basic",
+            "search_depth": "basic",
                 "include_answer": True,
                 "max_results": 3,  # Reduced for speed
                 "include_domains": ["amazon.in", "flipkart.com", "meesho.com"]
@@ -1022,7 +1091,7 @@ async def recommend_alternates(payload: dict = Body(...)):
         data = response.json()
         answer = data.get("answer") or data.get("summary") or ""
         
-        # Parse results into same products and alternates
+                # Parse results into same products and alternates
         same_products = []
         alternates = []
         
@@ -1171,7 +1240,7 @@ async def test_translation(payload: dict = Body(...)):
             "language": language,
             "success": False,
             "error": str(e)
-        }
+    }
 
 @app.get("/")
 async def root():

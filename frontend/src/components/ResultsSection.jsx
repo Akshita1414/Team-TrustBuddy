@@ -52,7 +52,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
     return (
       <div className="space-y-8">
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-blue-200 animate-fade-in">
-          <h2 className="text-2xl font-bold text-blue-900 mb-4">{t('Product Link Analysis')}</h2>
+          <h2 className="text-2xl font-bold text-blue-900 mb-4">Product Link Analysis</h2>
           <div className="mb-4">
             <div className="text-lg font-semibold text-gray-800 mb-2">
               {typeof product_title === 'string' ? product_title : typeof product_title === 'object' ? JSON.stringify(product_title) : String(product_title || '')}
@@ -80,7 +80,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             )}
           </div>
           <div className="mb-4">
-            <h3 className="font-semibold text-blue-700 mb-2">{t('Extracted Reviews')}</h3>
+            <h3 className="font-semibold text-blue-700 mb-2">Extracted Reviews</h3>
             {reviews && reviews.length > 0 && (
               <div className="flex items-center justify-between mb-2">
                 <div></div>
@@ -97,7 +97,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             </ul>
           </div>
           <div className="mb-4">
-            <h3 className="font-semibold text-blue-700 mb-2">{t('Image Authenticity')}</h3>
+            <h3 className="font-semibold text-blue-700 mb-2">Image Authenticity</h3>
             {image_analysis ? (
               <div className="p-4 rounded-lg border-2 bg-blue-50 border-blue-200">
                 <div className="flex items-center justify-between mb-2">
@@ -114,7 +114,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               </div>
             ) : (
               <div className="text-gray-500">
-                {t('No image analysis available.')}
+                No image analysis available.
                 {productLinkResult && (
                   <pre className="text-xs text-red-500 mt-2">{JSON.stringify(productLinkResult, null, 2)}</pre>
                 )}
@@ -122,7 +122,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             )}
           </div>
           <div className="mb-4">
-            <h3 className="font-semibold text-blue-700 mb-2">{t('AI Recommendation')}</h3>
+            <h3 className="font-semibold text-blue-700 mb-2">AI Recommendation</h3>
             {typeof productLinkResult?.final_confidence_score === 'number' && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-900 font-semibold text-center">
                 Final Confidence Score: {Math.round(productLinkResult.final_confidence_score * 100)}%
@@ -167,14 +167,14 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                     {/* Product Information */}
                     <div className="mb-6">
                       <h5 className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
-                        <span>📦</span> Product Information
+                        <span>📦</span> {t('productInformation')}
                       </h5>
                       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                         <div className="space-y-2">
-                          <p><strong className="text-blue-800">Title:</strong> 
+                          <p><strong className="text-blue-800">{t('title')}:</strong> 
                             <span className="ml-2 text-gray-700">{productLinkResult.product_title || 'Not available'}</span>
                           </p>
-                          <p><strong className="text-blue-800">Description:</strong> 
+                          <p><strong className="text-blue-800">{t('description')}:</strong> 
                             <span className="ml-2 text-gray-700">{productLinkResult.product_description || 'Not available'}</span>
                           </p>
                         </div>
@@ -184,12 +184,12 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                     {/* Review Analysis */}
                     <div className="mb-6">
                       <h5 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
-                        <span>💬</span> Review Analysis
+                        <span>💬</span> {t('reviewAnalysis')}
                       </h5>
                       <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-green-800">Total Reviews Found:</span>
+                            <span className="font-semibold text-green-800">{t('totalReviewsFound')}:</span>
                             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                               Array.isArray(productLinkResult.reviews) && productLinkResult.reviews.length > 0
                                 ? 'bg-green-100 text-green-800'
@@ -200,7 +200,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                           </div>
                           {Array.isArray(productLinkResult.reviews) && productLinkResult.reviews.length > 0 ? (
                             <div>
-                              <p className="font-semibold text-green-800 mb-2">Sample Reviews:</p>
+                              <p className="font-semibold text-green-800 mb-2">{t('sampleReviews')}:</p>
                               <div className="space-y-2">
                                 {productLinkResult.reviews.slice(0, 3).map((review, idx) => (
                                   <div key={idx} className="bg-white p-3 rounded border border-green-200">
@@ -221,7 +221,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                     {/* Image Analysis */}
                     <div className="mb-6">
                       <h5 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
-                        <span>🖼️</span> Image Authenticity
+                        <span>🖼️</span> {t('imageAuthenticity')}
                       </h5>
                       <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                         {productLinkResult.image_analysis && !productLinkResult.image_analysis.error ? (
@@ -266,7 +266,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                     {/* Final Score */}
                     <div className="mb-6">
                       <h5 className="font-semibold text-orange-700 mb-2 flex items-center gap-2">
-                        <span>🎯</span> Overall Assessment
+                        <span>🎯</span> {t('overallAssessment')}
                       </h5>
                       <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                         <div className="space-y-3">
@@ -323,7 +323,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               </div>
             ) : (
               <div className="text-gray-500">
-                {t('No recommendation available.')}
+                No recommendation available.
                 {productLinkResult && (
                   <pre className="text-xs text-red-500 mt-2">{JSON.stringify(productLinkResult, null, 2)}</pre>
                 )}
@@ -337,7 +337,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
               onClick={onNewAnalysis}
               className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-lg shadow-lg transition-all duration-200"
             >
-              {t('Back to Input')}
+              Back to Input
             </button>
           </div>
         )}
@@ -349,7 +349,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
   if (!analysisResult && !imageVerification) {
     return (
       <div className="text-center py-8">
-        <div className="text-gray-500">{t('No analysis results available')}</div>
+        <div className="text-gray-500">No analysis results available</div>
       </div>
     );
   }
