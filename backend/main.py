@@ -1528,7 +1528,7 @@ async def test_translation(payload: dict = Body(...)):
             "error": str(e)
     }
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     """Root endpoint with API information"""
     return {
