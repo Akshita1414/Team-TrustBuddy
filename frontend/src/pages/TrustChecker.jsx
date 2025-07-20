@@ -10,7 +10,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
 import { translations } from '../data/translations';
 import PriceComparisonTab from './PriceComparisonTab';
-// Removed unused imports: speak, getVoiceLanguage
+import { speak, getVoiceLanguage } from '../utils/voice';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 function t(key, lang = 'en') {
@@ -537,8 +537,8 @@ export function TrustChecker() {
           {voiceResult && (
             <div className="mt-8">
               <ResultsSection analysisResult={voiceResult} />
-            </div>
-          )}
+                  </div>
+                )}
         </div>
       )
     },

@@ -67,42 +67,61 @@ export default function PriceComparisonTab() {
     setRawAnswer('');
     setResultType('');
     if (!productName.trim() || !maxPrice.trim() || isNaN(Number(maxPrice))) {
-      setAltError(t('enterProductAndPrice'));
+      setAltError('Enter product name and a valid max price.');
       return;
     }
     setAltLoading(true);
+    
+    // Add timeout for better UX
+    const timeoutId = setTimeout(() => {
+      if (altLoading) {
+        setAltError('Request is taking longer than expected. Please wait or try again.');
+      }
+    }, 15000); // 15 second timeout warning
+    
     try {
       const username = localStorage.getItem('username');
+      const controller = new AbortController();
+      const timeoutId2 = setTimeout(() => controller.abort(), 30000); // 30 second total timeout
+      
       const response = await fetch(`${API_CONFIG.BASE_URL}/recommend-alternates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_name: productName, max_price: maxPrice, username, language })
+        body: JSON.stringify({ product_name: productName, max_price: maxPrice, username }),
+        signal: controller.signal
       });
-      const data = await response.json();
-      setResultType(data.type);
       
-      // Handle new response format with both same products and alternates
-      if (data.type === 'both_products') {
-        setSameProducts(data.same_products || []);
-        setAlternates(data.alternates || []);
-        setRawAnswer(data.same_products_raw || data.alternates_raw || '');
-      } else if (data.type === 'same_product' && data.products && data.products.length > 0) {
-        // Handle legacy format for backward compatibility
+      clearTimeout(timeoutId2);
+      const data = await response.json();
+      
+      if (data.error) {
+        setAltError(data.error);
+        setAltLoading(false);
+        return;
+      }
+      
+      setResultType(data.type);
+      if (data.type === 'same_product' && data.products && data.products.length > 0) {
         setSameProducts(data.products);
         setRawAnswer(data.raw_answer || '');
       } else if (data.type === 'alternates' && data.alternates && data.alternates.length > 0) {
-        // Handle legacy format for backward compatibility
         setAlternates(data.alternates);
         setRawAnswer(data.raw_answer || '');
       } else if (data.raw_answer) {
         setRawAnswer(data.raw_answer);
       } else {
-        setAltError(t('noProductsFound'));
+        setAltError('No products found.');
       }
     } catch (e) {
-      setAltError(t('failedToFetch'));
+      if (e.name === 'AbortError') {
+        setAltError('Request timed out. Please try again with a different product or price range.');
+      } else {
+        setAltError('Failed to fetch alternates. Please check your connection and try again.');
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      setAltLoading(false);
     }
-    setAltLoading(false);
   };
 
   return (
@@ -191,6 +210,19 @@ export default function PriceComparisonTab() {
       {/* Alternate Recommendations */}
       <div className="mt-10">
         <h3 className="text-xl font-semibold mb-2">{t('findAlternateProducts')}</h3>
+        
+        {/* Quick Search Tips */}
+        <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-300 rounded">
+          <div className="text-sm text-blue-800">
+            <div className="font-medium mb-1">💡 Quick Search Tips:</div>
+            <div className="text-xs">
+              • Use specific product names (e.g., "Samsung Galaxy M34" instead of "phone")<br/>
+              • Set realistic price ranges for faster results<br/>
+              • Try popular brands for better availability
+            </div>
+          </div>
+        </div>
+        
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <input
             type="number"
@@ -201,24 +233,42 @@ export default function PriceComparisonTab() {
           />
           <button
             onClick={handleRecommend}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-blue-500 text-white font-semibold shadow hover:from-orange-600 hover:to-blue-600 transition-all"
+            disabled={altLoading}
+            className={`px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-blue-500 text-white font-semibold shadow transition-all ${
+              altLoading 
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:from-orange-600 hover:to-blue-600'
+            }`}
           >
-            {t('findAlternates')}
+            {altLoading ? 'Searching...' : t('findAlternates')}
           </button>
         </div>
         {altError && <div className="mb-4 text-red-600 font-medium">{altError}</div>}
         {altLoading && (
-          <div className="flex justify-center items-center py-4">
-            <svg className="animate-spin h-6 w-6 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div className="flex flex-col justify-center items-center py-6">
+            <svg className="animate-spin h-8 w-8 text-orange-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
             </svg>
+            <div className="text-sm text-gray-600 text-center">
+              <div>Searching for products...</div>
+              <div className="text-xs mt-1">This may take 10-15 seconds</div>
+            </div>
           </div>
         )}
         {/* Show same product results if present */}
-        {(resultType === 'same_product' || resultType === 'both_products') && sameProducts.length > 0 && (
+        {resultType === 'same_product' && sameProducts.length > 0 && (
           <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded mb-4 text-green-900 mt-4">
-            <div className="font-bold mb-2">{t('sameProductFound')}</div>
+            <div className="font-bold mb-2">Same Product Found on Other Sites:</div>
+            {/* Price validation warning */}
+            {sameProducts.some(p => p.price < 1000) && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded mb-3 text-yellow-800">
+                <div className="text-sm">
+                  <strong>⚠️ Price Warning:</strong> Some prices shown may be unrealistic or for different products. 
+                  Please verify before making purchase decisions.
+                </div>
+              </div>
+            )}
             <div className="grid sm:grid-cols-2 gap-6 mt-2">
               {sameProducts.map((item, idx) => (
                 <div key={idx} className="bg-white rounded-xl shadow p-5 flex flex-col gap-2 border border-gray-100">
@@ -227,32 +277,30 @@ export default function PriceComparisonTab() {
                     <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">{item.retailer}</span>
                   </div>
                   <div className="text-lg font-bold text-orange-700 mb-1">₹ {item.price}</div>
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm">{t('viewProduct')}</a>
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm">View Product</a>
                 </div>
               ))}
             </div>
             {rawAnswer && (
               <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
-                <div className="flex items-center mb-1">
-                  <div className="font-medium mr-2">{t('priceRecommendations.title')}</div>
-                  <button
-                    className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                    onClick={() => speak(rawAnswer, getVoiceLanguage(language))}
-                  >
-                    {t('listen')}
-                  </button>
-                </div>
-                <div className="text-sm text-gray-600 mb-2">{t('priceRecommendations.subtitle')}</div>
-                <div className="whitespace-pre-line text-sm leading-relaxed">{rawAnswer}</div>
+                <div className="font-medium mb-1">AI Raw Answer:</div>
+                <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
               </div>
             )}
           </div>
         )}
-        {/* Show alternates if available */}
-        {(resultType === 'alternates' || resultType === 'both_products') && alternates.length > 0 && (
-          <div className="mt-6">
-            <h4 className="text-lg font-semibold text-gray-800 mb-4">{resultType === 'both_products' ? 'Alternative Products' : 'Recommended Alternatives'}</h4>
-            <div className="grid sm:grid-cols-2 gap-6">
+        {/* Show alternates if no same product found */}
+        {resultType === 'alternates' && alternates.length > 0 && (
+          <div className="grid sm:grid-cols-2 gap-6 mt-4">
+            {/* Price validation warning for alternates */}
+            {alternates.some(p => p.price < 1000) && (
+              <div className="col-span-2 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded mb-3 text-yellow-800">
+                <div className="text-sm">
+                  <strong>⚠️ Price Warning:</strong> Some prices shown may be unrealistic or for different products. 
+                  Please verify before making purchase decisions.
+                </div>
+              </div>
+            )}
             {alternates.map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl shadow p-5 flex flex-col gap-2 border border-gray-100">
                 <div className="flex items-center justify-between mb-1">
@@ -261,26 +309,16 @@ export default function PriceComparisonTab() {
                 </div>
                 <div className="text-lg font-bold text-orange-700 mb-1">₹ {item.price}</div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.price_score >= 4 ? 'bg-green-100 text-green-700' : item.price_score === 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{t('priceScore')}: {item.price_score}/5</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.price_score >= 4 ? 'bg-green-100 text-green-700' : item.price_score === 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>Price Score: {item.price_score}/5</span>
                   <span className="text-yellow-400 text-base">{'★'.repeat(item.price_score)}{'☆'.repeat(5 - item.price_score)}</span>
                 </div>
-                <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm">{t('viewProduct')}</a>
+                <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm">View Product</a>
               </div>
             ))}
-            </div>
             {rawAnswer && (
               <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
-                <div className="flex items-center mb-1">
-                  <div className="font-medium mr-2">{t('priceRecommendations.title')}</div>
-                  <button
-                    className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                    onClick={() => speak(rawAnswer, getVoiceLanguage(language))}
-                  >
-                    {t('listen')}
-                  </button>
-                </div>
-                <div className="text-sm text-gray-600 mb-2">{t('priceRecommendations.subtitle')}</div>
-                <div className="whitespace-pre-line text-sm leading-relaxed">{rawAnswer}</div>
+                <div className="font-medium mb-1">AI Suggestions:</div>
+                <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
               </div>
             )}
           </div>
@@ -288,17 +326,8 @@ export default function PriceComparisonTab() {
         {/* Show raw answer if no products found */}
         {rawAnswer && resultType && ((resultType === 'same_product' && sameProducts.length === 0) || (resultType === 'alternates' && alternates.length === 0)) && (
           <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded mb-4 text-gray-800 mt-4">
-            <div className="flex items-center mb-1">
-              <div className="font-medium mr-2">{t('priceRecommendations.title')}</div>
-              <button
-                className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200"
-                onClick={() => speak(rawAnswer, getVoiceLanguage(language))}
-              >
-                {t('listen')}
-              </button>
-            </div>
-            <div className="text-sm text-gray-600 mb-2">{t('priceRecommendations.subtitle')}</div>
-            <div className="whitespace-pre-line text-sm leading-relaxed">{rawAnswer}</div>
+            <div className="font-medium mb-1">AI Suggestions:</div>
+            <div className="whitespace-pre-line text-sm">{rawAnswer}</div>
           </div>
         )}
       </div>

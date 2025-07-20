@@ -590,15 +590,15 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                             else:
                                 confidence = 0.7
                         
-                        image_analysis = {
+                            image_analysis = {
                             "label": label,
                             "confidence": confidence,
                             "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
-                        }
+                            }
+                        else:
+                            image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
                     else:
-                        image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
-                else:
-                    image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
+                        image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
             except Exception as e:
                 print(f"DEBUG: Image analysis exception: {str(e)}")
                 image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
@@ -787,20 +787,14 @@ async def compare_prices(payload: dict = Body(...)):
     api_key = os.getenv("TAVILY_API_KEY")
     
     try:
-        # Step 1: Search for actual prices on specific e-commerce sites with better prompts
+        # Simplified search queries for faster response
         search_queries = [
-            f'"{product_name}" current price ₹ site:amazon.in',
-            f'"{product_name}" price in rupees site:flipkart.com',
-            f'"{product_name}" cost ₹ site:meesho.com',
-            f'"{product_name}" MRP price site:ajio.com',
-            f'"{product_name}" buy now price ₹ site:amazon.in',
-            f'"{product_name}" offer price site:flipkart.com',
-            f'"{product_name}" product listing price site:amazon.in',
-            f'"{product_name}" product page price site:flipkart.com'
+            f'"{product_name}" price ₹ site:amazon.in',
+            f'"{product_name}" price ₹ site:flipkart.com',
+            f'"{product_name}" price ₹ site:meesho.com'
         ]
         
         actual_prices = []
-        all_content = ""
         
         for query in search_queries:
             try:
@@ -810,13 +804,13 @@ async def compare_prices(payload: dict = Body(...)):
                     json={
                         "api_key": api_key,
                         "query": query,
-                        "search_depth": "advanced",
+                        "search_depth": "basic",  # Changed to basic for speed
                         "include_answer": True,
-                        "include_domains": ["amazon.in", "flipkart.com", "meesho.com", "ajio.com"],
-                        "max_results": 10,
+                        "include_domains": ["amazon.in", "flipkart.com", "meesho.com"],
+                        "max_results": 5,  # Reduced for speed
                         "include_raw_content": True
                     },
-                    timeout=20
+                    timeout=15  # Reduced timeout
                 )
                 
                 data = response.json()
@@ -827,14 +821,12 @@ async def compare_prices(payload: dict = Body(...)):
                     url = result.get("url", "")
                     title = result.get("title", "")
                     raw_content = result.get("raw_content", "")
-                    all_content += content + " "
                     
-                    # Extract prices from both processed content and raw content
+                    # Extract prices with better validation
                     import re
                     price_patterns = [
                         r"₹\s*([\d,]+)",
                         r"Rs\.?\s*([\d,]+)",
-                        r"(\d{4,})\s*(?:rupees?|rs)",
                         r"price[:\s]*₹?\s*([\d,]+)",
                         r"cost[:\s]*₹?\s*([\d,]+)",
                         r"MRP[:\s]*₹?\s*([\d,]+)",
@@ -842,15 +834,10 @@ async def compare_prices(payload: dict = Body(...)):
                         r"₹\s*(\d{1,3}(?:,\d{3})*)",
                         r"buy\s+now[:\s]*₹?\s*([\d,]+)",
                         r"offer\s+price[:\s]*₹?\s*([\d,]+)",
-                        r"discounted\s+price[:\s]*₹?\s*([\d,]+)",
                         r"current\s+price[:\s]*₹?\s*([\d,]+)",
                         r"(\d{4,})\s*(?:INR|₹|Rs)",
                         r"price[:\s]*(\d{4,})",
-                        r"cost[:\s]*(\d{4,})",
-                        r"class=\"[^\"]*price[^\"]*\"[^>]*>([^<]*₹\s*[\d,]+)",
-                        r"data-price=\"([\d,]+)\"",
-                        r"price\":\s*\"([\d,]+)\"",
-                        r"amount\":\s*([\d,]+)"
+                        r"cost[:\s]*(\d{4,})"
                     ]
                     
                     # Search in both processed content and raw HTML
@@ -866,7 +853,30 @@ async def compare_prices(payload: dict = Body(...)):
                                     # Clean the match to extract just the number
                                     price_str = re.sub(r'[^\d,]', '', str(match))
                                     price = int(price_str.replace(",", ""))
-                                    if 500 <= price <= 500000:  # Wider range for different products
+                                    
+                                    # Enhanced price validation based on product type
+                                    is_valid_price = True
+                                    
+                                    # Check for unrealistic prices based on product keywords
+                                    product_lower = product_name.lower()
+                                    if any(keyword in product_lower for keyword in ['laptop', 'macbook', 'computer', 'pc']):
+                                        if price < 20000 or price > 500000:  # Laptops should be 20k-5L
+                                            is_valid_price = False
+                                    elif any(keyword in product_lower for keyword in ['phone', 'mobile', 'iphone', 'samsung']):
+                                        if price < 5000 or price > 200000:  # Phones should be 5k-2L
+                                            is_valid_price = False
+                                    elif any(keyword in product_lower for keyword in ['tv', 'television']):
+                                        if price < 8000 or price > 300000:  # TVs should be 8k-3L
+                                            is_valid_price = False
+                                    elif any(keyword in product_lower for keyword in ['headphone', 'earphone', 'speaker', 'audio']):
+                                        if price < 500 or price > 50000:  # Audio should be 500-50k
+                                            is_valid_price = False
+                                    else:
+                                        # General validation for other products
+                                        if price < 100 or price > 100000:  # General range 100-1L
+                                            is_valid_price = False
+                                    
+                                    if is_valid_price:
                                         actual_prices.append({
                                             "price": price,
                                             "source": url,
@@ -890,6 +900,9 @@ async def compare_prices(payload: dict = Body(...)):
                 unique_prices.append(price_data)
         
         unique_prices.sort(key=lambda x: x["price"])
+        
+        # Limit to first 5 results for performance
+        unique_prices = unique_prices[:5]
         
         # Step 2: Generate specific analysis based on found prices
         if unique_prices:
@@ -940,7 +953,7 @@ async def compare_prices(payload: dict = Body(...)):
                     "timestamp": datetime.utcnow().isoformat()
                 }}}
             )
-        
+            
         return {
             "summary": enhanced_summary,
             "actual_prices": unique_prices
@@ -957,10 +970,10 @@ async def recommend_alternates(payload: dict = Body(...)):
     product_name = payload.get("product_name")
     max_price = payload.get("max_price")
     username = payload.get("username")
-    language = payload.get("language", "en")  # Default to English
     if not product_name or not max_price:
         return {"error": "Product name and max_price required."}
     api_key = os.getenv("TAVILY_API_KEY")
+    
     import re
     from datetime import datetime
     try:
@@ -968,126 +981,117 @@ async def recommend_alternates(payload: dict = Body(...)):
     except:
         max_price_val = None
 
-    # Step 1: Check for same product availability with improved prompt
-    prompt_same = (
-        f"Find the exact same '{product_name}' product available on multiple Indian e-commerce sites under ₹{max_price}. "
-        "Search specifically on: Amazon.in, Flipkart.com, Meesho.com, Ajio.com, Croma.com, Reliance Digital, Tata Cliq, Paytm Mall. "
-        "Return ONLY the exact same product (not alternatives) in this format: "
-        "1. Product Name | Price ₹X | Retailer | Link "
-        "2. Product Name | Price ₹X | Retailer | Link "
-        "Focus on finding the SAME model/variant across different retailers. "
-        "If you find the exact product on multiple sites, list each one. "
-        "If no exact match is found, say 'Exact product not found on multiple sites'."
-    )
-    response_same = requests.post(
-        "https://api.tavily.com/search",
-        headers={"Content-Type": "application/json"},
-        json={
-            "api_key": api_key,
-            "query": prompt_same,
-            "search_depth": "basic",
-            "include_answer": True
-        },
-        timeout=20
-    )
-    data_same = response_same.json()
-    answer_same = data_same.get("answer") or data_same.get("summary") or ""
-    same_products = []
-    same_pattern = re.compile(r"([\w\s\-\+]+)[\s\:\|\-]+₹?(\d+[,.]?\d*)[\s\:\|\-]+([\w\s]+)[\s\:\|\-]+(https?://\S+)", re.IGNORECASE)
-    for match in same_pattern.finditer(answer_same):
-        name, price, retailer, link = match.groups()
-        try:
-            price_val = float(price.replace(",", ""))
-        except:
-            price_val = None
-        if price_val is not None and max_price_val is not None and price_val <= max_price_val:
-            same_products.append({
-                "name": name.strip(),
-                "price": price_val,
-                "retailer": retailer.strip(),
-                "link": link.strip()
-            })
-    same_products.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
-
-    # Step 2: Always check for alternate products with improved prompt
-    prompt_alt = (
-        f"Find alternate products to '{product_name}' available in India under ₹{max_price} with better value, discounts, or similar features. "
-        "Return a simple, numbered list of alternates. For each, include: Product name, Price, Retailer, and Link (if available). "
-        "Prioritize Meesho and local Indian e-commerce sites, but include any good deals from Amazon.in, Flipkart.com, Ajio.com, etc. "
-        "Look for similar products, better deals, or alternatives that offer more value for money. "
-        "If you can't find all details, provide as much as possible."
-    )
-    response_alt = requests.post(
-        "https://api.tavily.com/search",
-        headers={"Content-Type": "application/json"},
-        json={
-            "api_key": api_key,
-            "query": prompt_alt,
-            "search_depth": "basic",
-            "include_answer": True
-        },
-        timeout=20
-    )
-    data_alt = response_alt.json()
-    alternates = []
-    answer_alt = data_alt.get("answer") or data_alt.get("summary") or ""
-    alt_pattern = re.compile(r"([\w\s\-\+]+)[\s\:\|\-]+₹?(\d+[,.]?\d*)[\s\:\|\-]+([\w\s]+)[\s\:\|\-]+(https?://\S+)", re.IGNORECASE)
-    for match in alt_pattern.finditer(answer_alt):
-        name, price, retailer, link = match.groups()
-        try:
-            price_val = float(price.replace(",", ""))
-        except:
-            price_val = None
-        if price_val is not None and max_price_val is not None and price_val < max_price_val:
-            if max_price_val > 0:
-                ratio = price_val / max_price_val
-                if ratio <= 0.4:
-                    score = 5
-                elif ratio <= 0.6:
-                    score = 4
-                elif ratio <= 0.8:
-                    score = 3
-                elif ratio <= 0.95:
-                    score = 2
+    # Very simple prompt for fast response
+    prompt = f"Find {product_name} price ₹{max_price} amazon flipkart meesho"
+    
+    try:
+        response = requests.post(
+            "https://api.tavily.com/search",
+            headers={"Content-Type": "application/json"},
+            json={
+                "api_key": api_key,
+                "query": prompt,
+                "search_depth": "basic",
+                "include_answer": True,
+                "max_results": 3,  # Reduced for speed
+                "include_domains": ["amazon.in", "flipkart.com", "meesho.com"]
+            },
+            timeout=8  # Very fast timeout
+        )
+        
+        data = response.json()
+        answer = data.get("answer") or data.get("summary") or ""
+        
+        # Parse results into same products and alternates
+        same_products = []
+        alternates = []
+        
+        # Simple pattern for parsing
+        pattern = re.compile(r"([\w\s\-\+]+)[\s\:\|\-]+₹?(\d+[,.]?\d*)[\s\:\|\-]+([\w\s]+)", re.IGNORECASE)
+        for match in pattern.finditer(answer):
+            name, price, retailer = match.groups()
+            try:
+                price_val = float(price.replace(",", ""))
+            except:
+                price_val = None
+                
+            if price_val is not None and max_price_val is not None:
+                # Enhanced price validation
+                is_valid_price = True
+                product_lower = name.lower()
+                
+                # Check for unrealistic prices
+                if any(keyword in product_name.lower() for keyword in ['laptop', 'macbook', 'computer', 'pc']):
+                    if price_val < 20000 or price_val > 500000:
+                        is_valid_price = False
+                elif any(keyword in product_name.lower() for keyword in ['phone', 'mobile', 'iphone', 'samsung']):
+                    if price_val < 5000 or price_val > 200000:
+                        is_valid_price = False
+                elif any(keyword in product_name.lower() for keyword in ['tv', 'television']):
+                    if price_val < 8000 or price_val > 300000:
+                        is_valid_price = False
+                elif any(keyword in product_name.lower() for keyword in ['headphone', 'earphone', 'speaker', 'audio']):
+                    if price_val < 500 or price_val > 50000:
+                        is_valid_price = False
                 else:
-                    score = 1
-            else:
-                score = 1
-            alternates.append({
-                "name": name.strip(),
-                "price": price_val,
-                "retailer": retailer.strip(),
-                "link": link.strip(),
-                "price_score": score
-            })
-    alternates.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
-
-    # Step 3: Return both same products and alternates
-    result = {
-        "type": "both_products",
-        "same_products": same_products,
-        "alternates": alternates,
-        "same_products_raw": answer_same,
-        "alternates_raw": answer_alt
-    }
-
-    # Save to user history if username is provided
-    if username:
-        users_collection.update_one(
-            {"username": username},
-            {"$push": {"history": {
-                "type": "product_recommendations",
+                    if price_val < 100 or price_val > 100000:
+                        is_valid_price = False
+                
+                if is_valid_price:
+                    product_data = {
+                        "name": name.strip(),
+                        "price": price_val,
+                        "retailer": retailer.strip(),
+                        "link": ""  # Simplified - no link parsing
+                    }
+                    
+                    # Check if it's the same product (contains product name keywords)
+                    product_keywords = product_name.lower().split()
+                    if any(keyword in product_lower for keyword in product_keywords) and price_val <= max_price_val:
+                        same_products.append(product_data)
+                    elif price_val < max_price_val:
+                        # Calculate score for alternates
+                        if max_price_val > 0:
+                            ratio = price_val / max_price_val
+                            score = 5 if ratio <= 0.4 else 4 if ratio <= 0.6 else 3 if ratio <= 0.8 else 2 if ratio <= 0.95 else 1
+                        else:
+                            score = 1
+                        product_data["price_score"] = score
+                        alternates.append(product_data)
+        
+        # Sort results
+        same_products.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
+        alternates.sort(key=lambda x: ("meesho" not in x["retailer"].lower(), x["price"]))
+        
+        # Save to user history
+        if username:
+            history_data = {
+                "type": "same_product_found" if same_products else "alternate_products",
                 "product_name": product_name,
                 "max_price": max_price,
-                "same_products": same_products,
-                "alternates": alternates,
-                "same_products_raw": answer_same,
-                "alternates_raw": answer_alt,
+                "raw_answer": answer,
                 "timestamp": datetime.utcnow().isoformat()
-            }}}
-        )
-
-    return result
+            }
+            if same_products:
+                history_data["products"] = same_products
+            else:
+                history_data["alternates"] = alternates
+                
+            users_collection.update_one(
+                {"username": username},
+                {"$push": {"history": history_data}}
+            )
+        
+        # Return results
+        if same_products:
+            return {"type": "same_product", "products": same_products, "raw_answer": answer}
+        elif alternates:
+            return {"type": "alternates", "alternates": alternates, "raw_answer": answer}
+        else:
+            return {"type": "alternates", "alternates": [], "raw_answer": answer}
+            
+    except Exception as e:
+        return {"type": "error", "error": str(e), "alternates": []}
 
 @app.get("/health")
 async def health_check():

@@ -304,7 +304,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                     
                     {/* Listen to Full Analysis */}
                     <div className="text-center">
-                      <button
+                    <button
                         className="px-6 py-3 rounded-lg bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition-colors shadow-sm"
                         onClick={() => {
                           const analysisText = `Product Analysis Report. Product: ${productLinkResult.product_title}. 
@@ -316,7 +316,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
                         }}
                       >
                         🔊 Listen to Full Analysis
-                      </button>
+                    </button>
                     </div>
                   </div>
                 )}
