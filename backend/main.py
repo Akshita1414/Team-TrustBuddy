@@ -1468,7 +1468,7 @@ async def recommend_alternates(payload: dict = Body(...)):
     except Exception as e:
         return {"type": "error", "error": str(e), "alternates": []}
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     """Health check endpoint to verify service status"""
     return {

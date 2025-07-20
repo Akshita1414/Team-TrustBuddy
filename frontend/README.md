@@ -21,25 +21,22 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
 
 - **🗣️ Voice Input:**  
   Users can speak their queries and reviews in their preferred language for analysis.
-- Verify: [View Voice Input Screenshot](./screenshots/Voice_Input.jpeg)
+  - Verify: [View Voice Input Screenshot](./screenshots/Voice_Input.jpeg)
 
-  **🔊 Listen to Recommendations:**  
+- **🔊 Listen to Recommendations:**  
   Users can listen to AI-generated recommendations and analysis results using built-in voice synthesis, making the platform accessible and convenient for everyone.
 
 - **📝 Review Analysis:**  
   - Detects fake, spammy, or suspicious reviews using advanced AI.
   - Provides sentiment, grammar, and authenticity breakdowns.
   - Shows both real and fake review examples for demo and education.
-  -Verify: ![Genuine Review Analysis](./screenshots/Genuine_Reviews_analysis.jpeg), ![Fake Review Analysis](./screenshots/Fake_review_analysis.jpeg)
-
+  - Verify: [View Fake review analysis Screenshot](./screenshots/Fake_review_analysis.jpeg), [View Real review analysis Screenshot](./screenshots/Genuine_Reviews_analysis.jpeg)
 
 - **🖼️ Image Verification:**  
   - Detects AI-generated or manipulated product images.
   - Flags suspicious images and confirms authentic ones.
   - Shows both real and fake image examples.
-  -Verify: Shows both real and fake image examples.  
-- Verify: [View Fake image analysis Screenshot](./screenshots/Fake_image_analysis.jpeg), [View Real image analysis Screenshot](./screenshots/Real_image_analysis.jpeg)
-
+  - Verify: [View Fake image analysis Screenshot](./screenshots/Fake_image_analysis.jpeg), [View Real image analysis Screenshot](./screenshots/Real_image_analysis.jpeg)
 
 - **🔗 Product Link Analysis:**  
   - Paste any product URL to analyze the entire product page.
@@ -56,7 +53,7 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
   - Detects inflated, fair, or bargain prices.
   - Suggests alternate products within your budget.
   - Provides direct links to retailer websites for easy verification and purchase.
-  - Verify : [View Price Comparison Screenshot](./screenshots/Price_comparison.jpeg), [View Alternate Price Screenshot](./screenshots/Alternate_price.jpeg)
+  - Verify: [View Price Comparison Screenshot](./screenshots/Price_comparison.jpeg), [View Alternate Price Screenshot](./screenshots/Alternate_price.jpeg)
 
 - **📊 Analytics & User History:**  
   - Logged-in users can view their analysis history.
@@ -106,7 +103,7 @@ pip install -r requirements.txt
 # Set up your .env file with Gemini API key and MongoDB URI
 uvicorn main:app --reload
 ```
-
+  
 ### **3. Frontend Setup**
 ```bash
 cd ../frontend
@@ -117,6 +114,8 @@ npm start
 ### **4. Access the App**
 - Frontend: [http://localhost:3000](http://localhost:3000)
 - Backend API: [http://localhost:8000](http://localhost:8000)
+
+**If the backend is not running, please refresh this link: [https://trustbuddy-backend.onrender.com/](https://trustbuddy-backend.onrender.com/)**
 
 ---
 
@@ -137,7 +136,7 @@ npm start
 ---
 
 ## 🎥 Demo
-Demo Video: https://youtu.be/3t3K_N9F_0A
+
 - **Showcase real and fake review/image analysis.**
 - **Demonstrate product link analysis, including unsupported site handling.**
 - **Highlight price comparison with direct retailer links.**
@@ -145,10 +144,6 @@ Demo Video: https://youtu.be/3t3K_N9F_0A
 - **Show analytics dashboard and mobile responsiveness.**
 
 ---
-
-> ⚠️ **Note**: If the backend is not running, please click the link below to wake it up (Render free tier may cause it to sleep after inactivity):
-
-  🔁 [Refresh Backend Server](https://trustbuddy-backend.onrender.com/)
 
 ## ⚠️ Limitations
 
@@ -177,10 +172,7 @@ Please open an issue to discuss your ideas or report bugs.
 
 ## 👥 Team
 
-- Team TrustBuddy
-
-## Team Members
-
+- TeameName : Team TrustIQ
 - Akshita Chauhan
 
 ---
@@ -194,8 +186,8 @@ MIT License
 ## 📬 Contact
 
 For questions, feedback, or partnership inquiries:  
-**Email:** aakshita_be22@thapar.edu  
-**GitHub:** [github.com/Akshita1414/trustbuddy](https://github.com/Akshita1414/Team-TrustBuddy)
+**Email:** aakshita_be22@thapar.edu
+**GitHub:** [github.com/Akshita1414/Team-TrustBuddy](https://github.com/Akshita1414/Team-TrustBuddy)
 
 ---
 
