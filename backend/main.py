@@ -394,6 +394,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
     import io
     import re
     import json as pyjson
+    import os
     from PIL import Image
     try:
         data = await request.json()
@@ -534,74 +535,93 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
         # Analyze product image with Gradio client
         image_analysis = None
         if img_url and isinstance(img_url, str):
-            try:
-                img_resp = pyrequests.get(img_url, headers=headers, timeout=10)
-                if img_resp.status_code == 200:
-                    # Save the image to a temporary file
-                    import tempfile
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-                        tmp.write(img_resp.content)
-                        tmp_path = tmp.name
-                    
-                    # Use gradio_client to call your Space
-                    print(f"DEBUG: Calling Akshita1414/Image_Hugging_Face Space")
-                    client = Client("Akshita1414/Image_Hugging_Face")
-                    result = client.predict(
-                        img=handle_file(tmp_path),
-                        api_name="/predict"
-                    )
-                    print(f"DEBUG: Space result: {result}")
-                    
-                    # Clean up the temp file
-                    import os
-                    os.remove(tmp_path)
-                    
-                    # Process the result from your Space
-                    if isinstance(result, dict):
-                        label = result.get("label", "UNKNOWN")
-                        confidence = float(result.get("confidence", 0.0))
+            # Skip image analysis for problematic domains or URLs
+            problematic_domains = ['fnp.com', 'm-i1.fnp.com', 'cdn.fnp.com']
+            if any(domain in img_url.lower() for domain in problematic_domains):
+                image_analysis = {
+                    "label": "SKIPPED",
+                    "confidence": 0.5,
+                    "reason": "Image analysis skipped due to known server issues. Proceeding with text-based analysis only."
+                }
+            else:
+                try:
+                    # Add better error handling for image fetching
+                    img_resp = pyrequests.get(img_url, headers=headers, timeout=15)
+                    if img_resp.status_code == 200:
+                        # Save the image to a temporary file
+                        import tempfile
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                            tmp.write(img_resp.content)
+                            tmp_path = tmp.name
                         
-                        # If confidence is 0, assign based on label
-                        if confidence == 0.0:
-                            if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
-                                confidence = 0.85
-                            elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
-                                confidence = 0.35
-                            else:
-                                confidence = 0.7
+                        # Use gradio_client to call your Space
+                        print(f"DEBUG: Calling Akshita1414/Image_Hugging_Face Space")
+                        client = Client("Akshita1414/Image_Hugging_Face")
+                        result = client.predict(
+                            img=handle_file(tmp_path),
+                            api_name="/predict"
+                        )
+                        print(f"DEBUG: Space result: {result}")
                         
-                        image_analysis = {
-                            "label": label,
-                            "confidence": confidence,
-                            "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
-                        }
-                    elif isinstance(result, list) and len(result) > 0:
-                        # Handle list response format
-                        best = max(result, key=lambda r: r.get('score', 0) if isinstance(r, dict) else 0)
-                        label = best.get("label", "UNKNOWN")
-                        confidence = float(best.get("score", 0.0))
+                        # Clean up the temp file
+                        import os
+                        os.remove(tmp_path)
                         
-                        # If confidence is 0, assign based on label
-                        if confidence == 0.0:
-                            if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
-                                confidence = 0.85
-                            elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
-                                confidence = 0.35
-                            else:
-                                confidence = 0.7
-                        
+                        # Process the result from your Space
+                        if isinstance(result, dict):
+                            label = result.get("label", "UNKNOWN")
+                            confidence = float(result.get("confidence", 0.0))
+                            
+                            # If confidence is 0, assign based on label
+                            if confidence == 0.0:
+                                if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
+                                    confidence = 0.85
+                                elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
+                                    confidence = 0.35
+                                else:
+                                    confidence = 0.7
+                            
                             image_analysis = {
-                            "label": label,
-                            "confidence": confidence,
-                            "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
+                                "label": label,
+                                "confidence": confidence,
+                                "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
+                            }
+                        elif isinstance(result, list) and len(result) > 0:
+                            # Handle list response format
+                            best = max(result, key=lambda r: r.get('score', 0) if isinstance(r, dict) else 0)
+                            label = best.get("label", "UNKNOWN")
+                            confidence = float(best.get("score", 0.0))
+                            
+                            # If confidence is 0, assign based on label
+                            if confidence == 0.0:
+                                if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
+                                    confidence = 0.85
+                                elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
+                                    confidence = 0.35
+                                else:
+                                    confidence = 0.7
+                            
+                            image_analysis = {
+                                "label": label,
+                                "confidence": confidence,
+                                "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
                             }
                         else:
                             image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
                     else:
                         image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
-            except Exception as e:
-                print(f"DEBUG: Image analysis exception: {str(e)}")
-                image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
+                except Exception as e:
+                    print(f"DEBUG: Image analysis exception: {str(e)}")
+                    # Provide a more user-friendly error message
+                    error_msg = str(e)
+                    if "NameResolutionError" in error_msg or "getaddrinfo failed" in error_msg:
+                        image_analysis = {"error": "Image analysis failed: Unable to reach image server. The image URL may be invalid or the server is down.", "confidence": 0.0}
+                    elif "timeout" in error_msg.lower():
+                        image_analysis = {"error": "Image analysis failed: Request timed out. The image server is taking too long to respond.", "confidence": 0.0}
+                    elif "connection" in error_msg.lower():
+                        image_analysis = {"error": "Image analysis failed: Network connection error. Please check your internet connection.", "confidence": 0.0}
+                    else:
+                        image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
         # If image_analysis is still None, ensure it is a dict with confidence 0.0
         if image_analysis is None:
             image_analysis = {"label": None, "confidence": 0.0, "reason": "No image analysis performed."}
