@@ -172,8 +172,8 @@ Please open an issue to discuss your ideas or report bugs.
 
 ## 👥 Team
 
-- **Your Name(s)**
-- [Add teammates, mentors, or contributors here]
+- TeameName : Team TrustIQ
+- Akshita Chauhan
 
 ---
 
@@ -186,8 +186,8 @@ MIT License
 ## 📬 Contact
 
 For questions, feedback, or partnership inquiries:  
-**Email:** your.email@example.com  
-**GitHub:** [github.com/yourusername/trustbuddy](https://github.com/yourusername/trustbuddy)
+**Email:** aakshita_be22@thapar.edu
+**GitHub:** [github.com/Akshita1414/Team-TrustBuddy](https://github.com/Akshita1414/Team-TrustBuddy)
 
 ---
 
