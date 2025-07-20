@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, CheckCircle, Upload, Globe } from 'lucide-react';
+import { Shield, CheckCircle, Upload, Globe, LogOut } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { Header } from '../components/Header';
 import { FeatureCard } from '../components/FeatureCard';
@@ -70,35 +70,39 @@ export function HomePage() {
           />
         </div>
       </main>
-      <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, minWidth: 160 }}>
+      
+      {/* User Menu */}
+      <div className="fixed top-6 right-6 z-50">
         {username ? (
-          <>
-            <span style={{ marginRight: 0, fontWeight: 500 }}>Welcome, {username}!</span>
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 min-w-[200px]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">{username.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Welcome, {username}!</p>
+                  <p className="text-xs text-gray-500">TrustBuddy User</p>
+                </div>
+              </div>
+            </div>
             <button
               onClick={handleLogout}
-              style={{
-                marginTop: 4,
-                padding: '6px 18px',
-                background: '#ef4444',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 1px 4px #0001',
-                transition: 'background 0.2s',
-                width: '100%',
-              }}
-              onMouseOver={e => (e.currentTarget.style.background = '#dc2626')}
-              onMouseOut={e => (e.currentTarget.style.background = '#ef4444')}
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
             >
-              Logout
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
             </button>
-          </>
+          </div>
         ) : (
-          <a href="/login">Login</a>
+          <a 
+            href="/login"
+            className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 px-6 py-3 text-gray-900 font-medium hover:bg-white transition-all duration-200 flex items-center space-x-2"
+          >
+            <Shield className="w-4 h-4" />
+            <span>Login</span>
+          </a>
         )}
-        {/* Language selector is rendered after this in the header layout */}
       </div>
     </div>
   );

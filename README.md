@@ -1,261 +1,196 @@
-# TrustBuddy - AI-Powered Fake Review Detection
+# TrustBuddy
 
-TrustBuddy is a comprehensive fake review detection system that uses AI and machine learning to analyze review authenticity. The application consists of a FastAPI backend with ML models and a React frontend for user interaction.
+**AI-Powered Trust Verification for Bharat**  
+*Your one-stop solution for safe, smart, and confident online shopping.*
 
-## Features
+---
 
-- **AI-Powered Analysis**: Advanced text pattern analysis, sentiment analysis, and semantic coherence checking
-- **ML Model Integration**: Machine learning models for authenticity prediction
-- **Real-time Analysis**: Instant review analysis with confidence scoring
-- **Visual Badge System**: Color-coded risk assessment (Green/Yellow/Red)
-- **Detailed Breakdown**: Comprehensive analysis with specific recommendations
-- **Multi-language Support**: Support for English, Hindi, Spanish, and French
-- **Dynamic Translation**: Gemini API integration for real-time language translation
-- **Price Comparison**: Real-time price analysis with multilingual support
-- **Product Recommendations**: AI-powered alternative product suggestions
+## 🚀 Overview
 
-## Project Structure
+TrustBuddy is a full-stack hackathon prototype designed to empower Indian consumers with AI-driven tools for verifying product authenticity, analyzing reviews, checking images, and comparing prices across multiple retailers. With multilingual support, voice input, and a beautiful modern UI, TrustBuddy is built to help users from Tier 2/3 cities shop online with confidence.
 
-```
-trustbuddy/
-├── backend/                 # FastAPI backend with ML models
-│   ├── core/               # Core analysis logic
-│   ├── models/             # Pydantic models
-│   ├── main.py             # FastAPI application
-│   ├── review_analyzer.py  # ML model implementation
-│   └── requirements.txt    # Python dependencies
-├── frontend/               # React frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Page components
-│   │   ├── services/       # API service layer
-│   │   └── utils/          # Utility functions
-│   └── package.json        # Node.js dependencies
-└── README.md              # This file
-```
+---
 
-## Quick Start
+## ✨ Features
 
-### Prerequisites
+- **🔐 User Authentication:**  
+  Modern login/signup with secure session management and a beautiful UI.
 
-- Python 3.8+ with pip
-- Node.js 16+ with npm
-- Git
+- **🌐 Multilingual Support:**  
+  Full support for English, Hindi, Gujarati, Marathi, and Kannada. All analysis and UI elements are translated in real time.
 
-### Backend Setup
+- **🗣️ Voice Input:**  
+  Users can speak their queries and reviews in their preferred language for analysis.
 
-1. **Navigate to backend directory:**
-   ```bash
-   cd backend
-   ```
+- **🔊 Listen to Recommendations:**  
+  Users can listen to AI-generated recommendations and analysis results using built-in voice synthesis, making the platform accessible and convenient for everyone.
 
-2. **Create virtual environment (recommended):**
-   ```bash
-   python -m venv venv
-   
-   # On Windows:
-   venv\Scripts\activate
-   
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
+- **📝 Review Analysis:**  
+  - Detects fake, spammy, or suspicious reviews using advanced AI.
+  - Provides sentiment, grammar, and authenticity breakdowns.
+  - Shows both real and fake review examples for demo and education.
+  -Verify: [View Fake review analysis Screenshot](./screenshots/Fake_review_analysis.jpeg), [View Real review analysis Screenshot](./screenshots/Genuine_Review_analysis.jpeg)
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
 
-4. **Set up environment variables:**
-   ```bash
-   # Copy the example environment file
-   cp env.example .env
-   
-   # Edit .env and add your API keys:
-   # GEMINI_API_KEY=your_gemini_api_key_here
-   # MONGO_URL=your_mongo_url_here
-   # TAVILY_API_KEY=your_tavily_api_key_here
-   ```
 
-5. **Start the backend server:**
-   ```bash
-   python main.py
-   ```
+- **🖼️ Image Verification:**  
+  - Detects AI-generated or manipulated product images.
+  - Flags suspicious images and confirms authentic ones.
+  - Shows both real and fake image examples.
+  -Verify: ./screenshots/Fake_image_analysis.jpeg, ./screenshots/Real_Image_analysis.jpeg
 
-   The backend will start on `http://localhost:8000`
+- **🔗 Product Link Analysis:**  
+  - Paste any product URL to analyze the entire product page.
+  - Extracts reviews, checks seller credibility, and provides a comprehensive trust score.
+  - Gives clear risk level, recommendations, and highlights issues.
+  - Handles unsupported sites (e.g., with CAPTCHA) gracefully, informing users and suggesting alternatives.
+  - Verify: ./screenshots/Product_link_analysis.jpeg
 
-### Frontend Setup
+- **🏷️ Product Name Context:**  
+  - Product name is used as context to improve the accuracy of review and image analysis.
 
-1. **Open a new terminal and navigate to frontend directory:**
-   ```bash
-   cd frontend
-   ```
+- **💸 Price Comparison:**  
+  - Compares prices across multiple Indian retailers.
+  - Detects inflated, fair, or bargain prices.
+  - Suggests alternate products within your budget.
+  - Provides direct links to retailer websites for easy verification and purchase.
+  - Verify: ./screenshots/Price_comparison.jpeg
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+- **📊 Analytics & User History:**  
+  - Logged-in users can view their analysis history.
+  - Visualizes confidence score trends and risk level distribution.
 
-3. **Start the frontend development server:**
-   ```bash
-   npm start
-   ```
+- **📱 Mobile Responsive:**  
+  - Fully responsive design for seamless use on any device.
 
-   The frontend will start on `http://localhost:3000`
+- **⚡ Modern UI/UX:**  
+  - Glass-morphism, smooth animations, and intuitive navigation.
 
-## Usage
+---
 
-1. **Open your browser** and go to `http://localhost:3000`
+## 🏆 Why TrustBuddy is a Hackathon Winner
 
-2. **Navigate to the Trust Checker** page
+- **Solves a real, large-scale problem for Indian consumers.**
+- **Inclusive:** Multilingual and voice support for Bharat’s diverse population.
+- **AI-first:** Uses state-of-the-art models for review, image, and price analysis.
+- **User-centric:** Friendly error handling, analytics, and actionable recommendations.
+- **Demo-ready:** Real and fake examples, clear flows, and beautiful design.
 
-3. **Enter review text** in the text area (minimum 5 characters)
+---
 
-4. **Click "Analyze Review"** to get instant results
+## 🛠️ Tech Stack
 
-5. **View the analysis results** including:
-   - Confidence score and risk level
-   - Text pattern analysis
-   - Sentiment analysis
-   - Coherence analysis
-   - ML model predictions
-   - Detailed recommendations
+- **Frontend:** React, Tailwind CSS, Chart.js, Lucide Icons, i18n
+- **Backend:** FastAPI, Python, MongoDB, Gradio Client, Gemini API, PIL, requests, httpx
+- **AI/ML:** Custom review analyzer, image authenticity detection, Gemini for translation
+- **Other:** Netlify (for deployment), REST APIs, JWT/localStorage for auth
 
-## API Endpoints
+---
 
-### Backend API (http://localhost:8000)
+## 🖥️ Setup & Installation
 
-- `POST /analyze-review` - Analyze a review for authenticity
-- `POST /compare-prices` - Compare product prices with multilingual support
-- `POST /recommend-alternates` - Get alternative product recommendations
-- `GET /health` - Health check endpoint
-- `GET /api/info` - API information and capabilities
-- `GET /docs` - Interactive API documentation (Swagger UI)
-
-### Gemini API Integration
-
-The backend uses Google's Gemini API for dynamic translation of responses. This ensures that:
-
-- Price analysis is generated in the user's selected language
-- Product recommendations are translated appropriately
-- All text responses are contextually translated
-- Product names and prices remain unchanged during translation
-
-To use this feature, you need to:
-1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Add it to your `.env` file as `GEMINI_API_KEY=your_key_here`
-
-### Example API Request
-
+### **1. Clone the repository**
 ```bash
-curl -X POST "http://localhost:8000/analyze-review" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "review_text": "This product is absolutely amazing! I love it so much. Best purchase ever!",
-    "product_name": "Sample Product",
-    "language": "en"
-  }'
+git clone https://github.com/yourusername/trustbuddy.git
+cd trustbuddy
 ```
 
-## Analysis Features
-
-### Text Pattern Analysis
-- Grammar quality assessment
-- Text length appropriateness
-- Repetitive word detection
-- Excessive punctuation analysis
-- Spam keyword detection
-
-### Sentiment Analysis
-- Positive/negative/neutral sentiment scoring
-- Extreme sentiment detection
-- Sentiment variance analysis
-- Dominant sentiment identification
-
-### Coherence Analysis
-- Semantic coherence scoring
-- Product relevance checking
-- Topic consistency analysis
-- Sentence structure evaluation
-
-### ML Model Analysis
-- Authenticity prediction
-- Model confidence scoring
-- Overall assessment classification
-
-## Development
-
-### Backend Development
-
-The backend uses FastAPI with the following key components:
-
-- **FastAPI**: Modern web framework for building APIs
-- **Pydantic**: Data validation and settings management
-- **Transformers**: Hugging Face transformers for ML models
-- **NLTK**: Natural language processing toolkit
-- **TextBlob**: Sentiment analysis library
-
-### Frontend Development
-
-The frontend uses React with:
-
-- **React 19**: Latest React version
-- **Tailwind CSS**: Utility-first CSS framework
-- **Lucide React**: Beautiful icons
-- **Fetch API**: For backend communication
-
-### Adding New Features
-
-1. **Backend**: Add new endpoints in `main.py` and corresponding logic in `core/`
-2. **Frontend**: Create new components in `src/components/` and integrate with API
-3. **Models**: Update Pydantic models in `backend/models/` as needed
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Backend won't start:**
-   - Check if Python 3.8+ is installed
-   - Ensure all dependencies are installed: `pip install -r requirements.txt`
-   - Check if port 8000 is available
-
-2. **Frontend won't start:**
-   - Check if Node.js 16+ is installed
-   - Ensure all dependencies are installed: `npm install`
-   - Check if port 3000 is available
-
-3. **API calls failing:**
-   - Ensure backend is running on `http://localhost:8000`
-   - Check browser console for CORS errors
-   - Verify network connectivity
-
-4. **ML models not loading:**
-   - First run may take longer as models download
-   - Check internet connection for model downloads
-   - Ensure sufficient disk space for model files
-
-### Environment Variables
-
-Create a `.env` file in the frontend directory:
-
-```env
-REACT_APP_API_URL=http://localhost:8000
+### **2. Backend Setup**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+# Set up your .env file with Gemini API key and MongoDB URI
+uvicorn main:app --reload
 ```
 
-## Contributing
+### **3. Frontend Setup**
+```bash
+cd ../frontend
+npm install
+npm start
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+### **4. Access the App**
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:8000](http://localhost:8000)
 
-## License
+---
 
-This project is licensed under the MIT License.
+## 🧑‍💻 Usage
 
-## Support
+1. **Sign up or log in.**
+2. **Select your preferred language.**
+3. **Choose a feature tab:**
+   - Review Analysis
+   - Image Verification
+   - Product Link Analysis
+   - Price Comparison
+4. **Enter product name for context (recommended).**
+5. **Paste reviews, upload images, or enter URLs as needed.**
+6. **View results, recommendations, and analytics.**
+7. **Try voice input or switch languages for a personalized experience.**
 
-For support and questions:
-- Check the API documentation at `http://localhost:8000/docs`
-- Review the console logs for error messages
-- Ensure both backend and frontend are running 
+---
+
+## 🎥 Demo
+Demo Video: https://youtu.be/3t3K_N9F_0A
+- **Showcase real and fake review/image analysis.**
+- **Demonstrate product link analysis, including unsupported site handling.**
+- **Highlight price comparison with direct retailer links.**
+- **Switch languages and use voice input.**
+- **Show analytics dashboard and mobile responsiveness.**
+
+---
+
+## ⚠️ Limitations
+
+- Product link analysis may not work on sites with strict anti-bot/CAPTCHA protection (user is informed gracefully).
+- AI models are optimized for Indian e-commerce but may have edge cases.
+- Prototype: Not production-ready; some features may be rate-limited or use free-tier APIs.
+
+---
+
+## 🗺️ Roadmap
+
+- Add support for more e-commerce platforms.
+- Integrate more Indian languages.
+- Enhance AI models for even better accuracy.
+- Add browser extension and WhatsApp bot integration.
+- Enable user feedback and crowdsourced trust signals.
+
+---
+
+## 🤝 Contributing
+
+Pull requests and suggestions are welcome!  
+Please open an issue to discuss your ideas or report bugs.
+
+---
+
+## 👥 Team
+
+- Team TrustBuddy
+
+## Team Members
+
+- Akshita Chauhan
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+## 📬 Contact
+
+For questions, feedback, or partnership inquiries:  
+**Email:** aakshita_be22@thapar.edu  
+**GitHub:** [github.com/Akshita1414/trustbuddy](https://github.com/Akshita1414/Team-TrustBuddy)
+
+---
+
+**Let’s make online shopping safer for everyone in Bharat!** 

@@ -1,70 +1,198 @@
-# Getting Started with Create React App
+# TrustBuddy
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**AI-Powered Trust Verification for Bharat**  
+*Your one-stop solution for safe, smart, and confident online shopping.*
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Overview
 
-### `npm start`
+TrustBuddy is a full-stack hackathon prototype designed to empower Indian consumers with AI-driven tools for verifying product authenticity, analyzing reviews, checking images, and comparing prices across multiple retailers. With multilingual support, voice input, and a beautiful modern UI, TrustBuddy is built to help users from Tier 2/3 cities shop online with confidence.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## ✨ Features
 
-### `npm test`
+- **🔐 User Authentication:**  
+  Modern login/signup with secure session management and a beautiful UI.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **🌐 Multilingual Support:**  
+  Full support for English, Hindi, Gujarati, Marathi, and Kannada. All analysis and UI elements are translated in real time.
 
-### `npm run build`
+- **🗣️ Voice Input:**  
+  Users can speak their queries and reviews in their preferred language for analysis.
+  - Verify: ![Voice Input](./screenshots/Voice_Input.jpeg)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+  **🔊 Listen to Recommendations:**  
+  Users can listen to AI-generated recommendations and analysis results using built-in voice synthesis, making the platform accessible and convenient for everyone.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- **📝 Review Analysis:**  
+  - Detects fake, spammy, or suspicious reviews using advanced AI.
+  - Provides sentiment, grammar, and authenticity breakdowns.
+  - Shows both real and fake review examples for demo and education.
+  -Verify: ![Genuine Review Analysis](./screenshots/Genuine_Reviews_analysis.jpeg), ![Fake Review Analysis](./screenshots/Fake_review_analysis.jpeg)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
+- **🖼️ Image Verification:**  
+  - Detects AI-generated or manipulated product images.
+  - Flags suspicious images and confirms authentic ones.
+  - Shows both real and fake image examples.
+  -Verify: ![Real Image Analysis](./screenshots/Real_image_analysis.jpeg), .![Fake Image Analysis](./screenshots/Fake_image_analysis.jpeg)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **🔗 Product Link Analysis:**  
+  - Paste any product URL to analyze the entire product page.
+  - Extracts reviews, checks seller credibility, and provides a comprehensive trust score.
+  - Gives clear risk level, recommendations, and highlights issues.
+  - Handles unsupported sites (e.g., with CAPTCHA) gracefully, informing users and suggesting alternatives.
+  - Verify: ![Product Link Analysis](./screenshots/Product_link_analysis.jpeg)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- **🏷️ Product Name Context:**  
+  - Product name is used as context to improve the accuracy of review and image analysis.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- **💸 Price Comparison:**  
+  - Compares prices across multiple Indian retailers.
+  - Detects inflated, fair, or bargain prices.
+  - Suggests alternate products within your budget.
+  - Provides direct links to retailer websites for easy verification and purchase.
+  - Verify: ![Price Comparison](./screenshots/Price_comparison.jpeg)
+            ![Alternate Price](./screenshots/Alternate_price.jpeg)
 
-## Learn More
+- **📊 Analytics & User History:**  
+  - Logged-in users can view their analysis history.
+  - Visualizes confidence score trends and risk level distribution.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **📱 Mobile Responsive:**  
+  - Fully responsive design for seamless use on any device.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **⚡ Modern UI/UX:**  
+  - Glass-morphism, smooth animations, and intuitive navigation.
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🏆 Why TrustBuddy is a Hackathon Winner
 
-### Analyzing the Bundle Size
+- **Solves a real, large-scale problem for Indian consumers.**
+- **Inclusive:** Multilingual and voice support for Bharat’s diverse population.
+- **AI-first:** Uses state-of-the-art models for review, image, and price analysis.
+- **User-centric:** Friendly error handling, analytics, and actionable recommendations.
+- **Demo-ready:** Real and fake examples, clear flows, and beautiful design.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## 🛠️ Tech Stack
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- **Frontend:** React, Tailwind CSS, Chart.js, Lucide Icons, i18n
+- **Backend:** FastAPI, Python, MongoDB, Gradio Client, Gemini API, PIL, requests, httpx
+- **AI/ML:** Custom review analyzer, image authenticity detection, Gemini for translation
+- **Other:** Netlify (for deployment), REST APIs, JWT/localStorage for auth
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🖥️ Setup & Installation
 
-### Deployment
+### **1. Clone the repository**
+```bash
+git clone https://github.com/yourusername/trustbuddy.git
+cd trustbuddy
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### **2. Backend Setup**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+# Set up your .env file with Gemini API key and MongoDB URI
+uvicorn main:app --reload
+```
 
-### `npm run build` fails to minify
+### **3. Frontend Setup**
+```bash
+cd ../frontend
+npm install
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### **4. Access the App**
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:8000](http://localhost:8000)
+
+---
+
+## 🧑‍💻 Usage
+
+1. **Sign up or log in.**
+2. **Select your preferred language.**
+3. **Choose a feature tab:**
+   - Review Analysis
+   - Image Verification
+   - Product Link Analysis
+   - Price Comparison
+4. **Enter product name for context (recommended).**
+5. **Paste reviews, upload images, or enter URLs as needed.**
+6. **View results, recommendations, and analytics.**
+7. **Try voice input or switch languages for a personalized experience.**
+
+---
+
+## 🎥 Demo
+Demo Video: https://youtu.be/3t3K_N9F_0A
+- **Showcase real and fake review/image analysis.**
+- **Demonstrate product link analysis, including unsupported site handling.**
+- **Highlight price comparison with direct retailer links.**
+- **Switch languages and use voice input.**
+- **Show analytics dashboard and mobile responsiveness.**
+
+---
+
+## ⚠️ Limitations
+
+- Product link analysis may not work on sites with strict anti-bot/CAPTCHA protection (user is informed gracefully).
+- AI models are optimized for Indian e-commerce but may have edge cases.
+- Prototype: Not production-ready; some features may be rate-limited or use free-tier APIs.
+
+---
+
+## 🗺️ Roadmap
+
+- Add support for more e-commerce platforms.
+- Integrate more Indian languages.
+- Enhance AI models for even better accuracy.
+- Add browser extension and WhatsApp bot integration.
+- Enable user feedback and crowdsourced trust signals.
+
+---
+
+## 🤝 Contributing
+
+Pull requests and suggestions are welcome!  
+Please open an issue to discuss your ideas or report bugs.
+
+---
+
+## 👥 Team
+
+- Team TrustBuddy
+
+## Team Members
+
+- Akshita Chauhan
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+## 📬 Contact
+
+For questions, feedback, or partnership inquiries:  
+**Email:** aakshita_be22@thapar.edu  
+**GitHub:** [github.com/Akshita1414/trustbuddy](https://github.com/Akshita1414/Team-TrustBuddy)
+
+---
+
+**Let’s make online shopping safer for everyone in Bharat!** 
