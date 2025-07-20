@@ -371,7 +371,88 @@ async def verify_image(image: UploadFile = File(...), username: Optional[str] = 
         # Optionally, clean up the temp file
         import os
         os.remove(tmp_path)
-        image_analysis = result
+        
+        # Process the result with improved logic
+        if isinstance(result, dict):
+            # Handle the new response format from Akshita1414/Image_Hugging_Face
+            if "is_ai_generated" in result:
+                is_ai_generated = result.get("is_ai_generated", False)
+                confidence = float(result.get("confidence", 0.0))
+                
+                if is_ai_generated:
+                    final_label = "AI-GENERATED"
+                    # Ensure confidence is properly set
+                    if confidence == 0.0:
+                        confidence = 0.35
+                else:
+                    final_label = "AUTHENTIC"
+                    # Ensure confidence is properly set
+                    if confidence == 0.0:
+                        confidence = 0.85
+                
+                image_analysis = {
+                    "label": final_label,
+                    "confidence": confidence,
+                    "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
+                }
+            else:
+                # Handle old response format
+                label = result.get("label", "UNKNOWN")
+                confidence = float(result.get("confidence", 0.0))
+                
+                # Clean and standardize the label
+                label_upper = label.upper()
+                
+                # Handle mixed or unclear results
+                if "AI" in label_upper or "GENERATED" in label_upper or "FAKE" in label_upper:
+                    final_label = "AI-GENERATED"
+                    if confidence == 0.0:
+                        confidence = 0.35
+                elif "REAL" in label_upper or "AUTHENTIC" in label_upper or "ORIGINAL" in label_upper or "GENUINE" in label_upper:
+                    final_label = "AUTHENTIC"
+                    if confidence == 0.0:
+                        confidence = 0.85
+                else:
+                    # For unclear results, default to manual review
+                    final_label = "UNCLEAR"
+                    confidence = 0.5
+                
+                image_analysis = {
+                    "label": final_label,
+                    "confidence": confidence,
+                    "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
+                }
+        elif isinstance(result, list) and len(result) > 0:
+            # Handle list response format
+            best = max(result, key=lambda r: r.get('score', 0) if isinstance(r, dict) else 0)
+            label = best.get("label", "UNKNOWN")
+            confidence = float(best.get("score", 0.0))
+            
+            # Clean and standardize the label
+            label_upper = label.upper()
+            
+            # Handle mixed or unclear results
+            if "AI" in label_upper or "GENERATED" in label_upper or "FAKE" in label_upper:
+                final_label = "AI-GENERATED"
+                if confidence == 0.0:
+                    confidence = 0.35
+            elif "REAL" in label_upper or "AUTHENTIC" in label_upper or "ORIGINAL" in label_upper or "GENUINE" in label_upper:
+                final_label = "AUTHENTIC"
+                if confidence == 0.0:
+                    confidence = 0.85
+            else:
+                # For unclear results, default to manual review
+                final_label = "UNCLEAR"
+                confidence = 0.5
+            
+            image_analysis = {
+                "label": final_label,
+                "confidence": confidence,
+                "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
+            }
+        else:
+            image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
+        
         # Save to user history if username is provided
         if username:
             users_collection.update_one(
@@ -440,7 +521,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                         hardcoded_response["summary"]["reason"] = "यह वेबसाइट सख्त एंटी-बॉट तंत्र का उपयोग करती है। कृपया समीक्षा विश्लेषण टैबमध्ये समीक्षांची प्रत बनवून उत्पादाचे मॅन्युअल विश्लेषण करा."
                     elif language == "mr":
                         hardcoded_response["product_title"] = "उत्पाद विश्लेषण उपलब्ध नाही"
-                        hardcoded_response["product_description"] = "ही वेबसाइट अँटी-बॉट संरक्षण वापरते जे स्वयंचलित विश्लेषण रोकते."
+                        hardcoded_response["product_description"] = "ही वेबसाइट अँटी-बॉट संरक्षण वापरते जे स्वयंचलित विश्लेषणरोकते."
                         hardcoded_response["reviews"] = ["वेबसाइट संरक्षणामुळे कोणत्याही समीक्षा उपलब्ध नाहीत."]
                         hardcoded_response["image_analysis"]["reason"] = "अँटी-बॉट संरक्षणामुळे या वेबसाइटसाठी प्रतिमा विश्लेषण उपलब्ध नाही."
                         hardcoded_response["summary"]["recommendation"] = "मॅन्युअल समीक्षा आवश्यक"
@@ -633,42 +714,81 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                         
                         # Process the result from your Space
                         if isinstance(result, dict):
-                            label = result.get("label", "UNKNOWN")
-                            confidence = float(result.get("confidence", 0.0))
-                            
-                            # If confidence is 0, assign based on label
-                            if confidence == 0.0:
-                                if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
-                                    confidence = 0.85
-                                elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
-                                    confidence = 0.35
+                            # Handle the new response format from Akshita1414/Image_Hugging_Face
+                            if "is_ai_generated" in result:
+                                is_ai_generated = result.get("is_ai_generated", False)
+                                confidence = float(result.get("confidence", 0.0))
+                                
+                                if is_ai_generated:
+                                    final_label = "AI-GENERATED"
+                                    # Ensure confidence is properly set
+                                    if confidence == 0.0:
+                                        confidence = 0.35
                                 else:
-                                    confidence = 0.7
-                            
-                            image_analysis = {
-                                "label": label,
-                                "confidence": confidence,
-                                "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
-                            }
+                                    final_label = "AUTHENTIC"
+                                    # Ensure confidence is properly set
+                                    if confidence == 0.0:
+                                        confidence = 0.85
+                                
+                                image_analysis = {
+                                    "label": final_label,
+                                    "confidence": confidence,
+                                    "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
+                                }
+                            else:
+                                # Handle old response format
+                                label = result.get("label", "UNKNOWN")
+                                confidence = float(result.get("confidence", 0.0))
+                                
+                                # Clean and standardize the label
+                                label_upper = label.upper()
+                                
+                                # Handle mixed or unclear results
+                                if "AI" in label_upper or "GENERATED" in label_upper or "FAKE" in label_upper:
+                                    final_label = "AI-GENERATED"
+                                    if confidence == 0.0:
+                                        confidence = 0.35
+                                elif "REAL" in label_upper or "AUTHENTIC" in label_upper or "ORIGINAL" in label_upper or "GENUINE" in label_upper:
+                                    final_label = "AUTHENTIC"
+                                    if confidence == 0.0:
+                                        confidence = 0.85
+                                else:
+                                    # For unclear results, default to manual review
+                                    final_label = "UNCLEAR"
+                                    confidence = 0.5
+                                
+                                image_analysis = {
+                                    "label": final_label,
+                                    "confidence": confidence,
+                                    "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
+                                }
                         elif isinstance(result, list) and len(result) > 0:
                             # Handle list response format
                             best = max(result, key=lambda r: r.get('score', 0) if isinstance(r, dict) else 0)
                             label = best.get("label", "UNKNOWN")
                             confidence = float(best.get("score", 0.0))
                             
-                            # If confidence is 0, assign based on label
-                            if confidence == 0.0:
-                                if label.upper() in ['REAL', 'AUTHENTIC', 'ORIGINAL', 'GENUINE']:
-                                    confidence = 0.85
-                                elif label.upper() in ['FAKE', 'AI-GENERATED', 'GENERATED', 'SYNTHETIC']:
+                            # Clean and standardize the label
+                            label_upper = label.upper()
+                            
+                            # Handle mixed or unclear results
+                            if "AI" in label_upper or "GENERATED" in label_upper or "FAKE" in label_upper:
+                                final_label = "AI-GENERATED"
+                                if confidence == 0.0:
                                     confidence = 0.35
-                                else:
-                                    confidence = 0.7
+                            elif "REAL" in label_upper or "AUTHENTIC" in label_upper or "ORIGINAL" in label_upper or "GENUINE" in label_upper:
+                                final_label = "AUTHENTIC"
+                                if confidence == 0.0:
+                                    confidence = 0.85
+                            else:
+                                # For unclear results, default to manual review
+                                final_label = "UNCLEAR"
+                                confidence = 0.5
                             
                             image_analysis = {
-                                "label": label,
+                                "label": final_label,
                                 "confidence": confidence,
-                                "reason": f"Image analysis result: {label} with confidence {round(confidence * 100, 1)}%"
+                                "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
                             }
                         else:
                             image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
@@ -676,16 +796,16 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                         image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
                 except Exception as e:
                     print(f"DEBUG: Image analysis exception: {str(e)}")
-                # Provide a more user-friendly error message
-                error_msg = str(e)
-                if "NameResolutionError" in error_msg or "getaddrinfo failed" in error_msg:
-                    image_analysis = {"error": "Image analysis failed: Unable to reach image server. The image URL may be invalid or the server is down.", "confidence": 0.0}
-                elif "timeout" in error_msg.lower():
-                    image_analysis = {"error": "Image analysis failed: Request timed out. The image server is taking too long to respond.", "confidence": 0.0}
-                elif "connection" in error_msg.lower():
-                    image_analysis = {"error": "Image analysis failed: Network connection error. Please check your internet connection.", "confidence": 0.0}
-                else:
-                    image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
+                    # Provide a more user-friendly error message
+                    error_msg = str(e)
+                    if "NameResolutionError" in error_msg or "getaddrinfo failed" in error_msg:
+                        image_analysis = {"error": "Image analysis failed: Unable to reach image server. The image URL may be invalid or the server is down.", "confidence": 0.0}
+                    elif "timeout" in error_msg.lower():
+                        image_analysis = {"error": "Image analysis failed: Request timed out. The image server is taking too long to respond.", "confidence": 0.0}
+                    elif "connection" in error_msg.lower():
+                        image_analysis = {"error": "Image analysis failed: Network connection error. Please check your internet connection.", "confidence": 0.0}
+                    else:
+                        image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
         # If image_analysis is still None, ensure it is a dict with confidence 0.0
         if image_analysis is None:
             image_analysis = {"label": None, "confidence": 0.0, "reason": "No image analysis performed."}
@@ -703,7 +823,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                     "reason": "Product has positive reviews and authentic images. Consider purchasing."
                 }
             elif has_reviews:
-                summary = {
+                    summary = {
                     "recommendation": "Consider",
                     "reason": "Product has reviews but image analysis is limited. Proceed with caution."
                 }
@@ -711,7 +831,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                 summary = {
                     "recommendation": "Buy",
                     "reason": "Product images appear authentic. Consider purchasing."
-                }
+                    }
             else:
                 summary = {
                     "recommendation": "Manual Review",
@@ -1047,7 +1167,7 @@ async def compare_prices(payload: dict = Body(...)):
             "summary": enhanced_summary,
             "actual_prices": unique_prices
         }
-        
+            
     except Exception as e:
         return {
             "summary": f"Error analyzing prices for {product_name}: {str(e)}",
@@ -1075,12 +1195,12 @@ async def recommend_alternates(payload: dict = Body(...)):
     
     try:
         response = requests.post(
-        "https://api.tavily.com/search",
-        headers={"Content-Type": "application/json"},
-        json={
-            "api_key": api_key,
+            "https://api.tavily.com/search",
+            headers={"Content-Type": "application/json"},
+            json={
+                "api_key": api_key,
                 "query": prompt,
-            "search_depth": "basic",
+                "search_depth": "basic",
                 "include_answer": True,
                 "max_results": 3,  # Reduced for speed
                 "include_domains": ["amazon.in", "flipkart.com", "meesho.com"]
@@ -1091,7 +1211,7 @@ async def recommend_alternates(payload: dict = Body(...)):
         data = response.json()
         answer = data.get("answer") or data.get("summary") or ""
         
-                # Parse results into same products and alternates
+        # Parse results into same products and alternates
         same_products = []
         alternates = []
         
@@ -1103,7 +1223,7 @@ async def recommend_alternates(payload: dict = Body(...)):
                 price_val = float(price.replace(",", ""))
             except:
                 price_val = None
-                
+                    
             if price_val is not None and max_price_val is not None:
                 # Enhanced price validation
                 is_valid_price = True
