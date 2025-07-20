@@ -630,54 +630,7 @@ export function ResultsSection({ analysisResult, onNewAnalysis, imageVerificatio
             </AnalysisCard>
           </div>
 
-          {/* Recommendations */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">{t('recommendations')}</h3>
-              <button
-                className="px-3 py-2 rounded bg-blue-100 text-blue-700 text-sm font-semibold hover:bg-blue-200"
-                onClick={() => {
-                  const recommendationsText = recommendations && Array.isArray(recommendations) && recommendations.length > 0 
-                    ? recommendations.map(rec => {
-                        // Translate common recommendation patterns
-                        const recLower = rec.toLowerCase();
-                        if (recLower.includes('low risk') && recLower.includes('authentic')) return t('lowRiskReviewAppearsAuthentic');
-                        if (recLower.includes('consider') && recLower.includes('decision')) return t('considerThisReviewInDecision');
-                        if (recLower.includes('genuine') && recLower.includes('experience')) return t('showsGenuineExperiencePatterns');
-                        if (recLower.includes('well-written') && recLower.includes('grammar')) return t('wellWrittenWithGoodGrammar');
-                        if (recLower.includes('balanced') && recLower.includes('sentiment')) return t('balancedSentimentNotExtreme');
-                        return rec; // Fallback to original if no pattern matches
-                      }).join('. ')
-                    : t('noRecommendationsAvailable');
-                  speak(recommendationsText, getVoiceLanguage(language));
-                }}
-              >
-                🔊 Listen
-              </button>
-            </div>
-            <div className="space-y-3">
-              {(recommendations && Array.isArray(recommendations) && recommendations.length > 0)
-                ? recommendations.map((recommendation, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="text-green-500 mt-1">•</div>
-                    <span className="text-gray-700">
-                      {(() => {
-                        // Translate common recommendation patterns
-                        const rec = recommendation.toLowerCase();
-                        if (rec.includes('low risk') && rec.includes('authentic')) return t('lowRiskReviewAppearsAuthentic');
-                        if (rec.includes('consider') && rec.includes('decision')) return t('considerThisReviewInDecision');
-                        if (rec.includes('genuine') && rec.includes('experience')) return t('showsGenuineExperiencePatterns');
-                        if (rec.includes('well-written') && rec.includes('grammar')) return t('wellWrittenWithGoodGrammar');
-                        if (rec.includes('balanced') && rec.includes('sentiment')) return t('balancedSentimentNotExtreme');
-                        return recommendation; // Fallback to original if no pattern matches
-                      })()}
-                    </span>
-                  </div>
-                ))
-                : <div className="text-gray-500">{t('noRecommendationsAvailable')}</div>
-              }
-            </div>
-          </div>
+
         </>
       )}
 
