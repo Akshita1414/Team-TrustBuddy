@@ -21,7 +21,7 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
 
 - **🗣️ Voice Input:**  
   Users can speak their queries and reviews in their preferred language for analysis.
-  - Verify: ![Voice Input](./screenshots/Voice_Input.jpeg)
+- Verify: [View Voice Input Screenshot](./screenshots/Voice_Input.jpeg)
 
   **🔊 Listen to Recommendations:**  
   Users can listen to AI-generated recommendations and analysis results using built-in voice synthesis, making the platform accessible and convenient for everyone.
@@ -37,7 +37,8 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
   - Detects AI-generated or manipulated product images.
   - Flags suspicious images and confirms authentic ones.
   - Shows both real and fake image examples.
-  -Verify: ![Real Image Analysis](./screenshots/Real_image_analysis.jpeg), .![Fake Image Analysis](./screenshots/Fake_image_analysis.jpeg)
+  -Verify: Shows both real and fake image examples.  
+- Verify: [View Fake image analysis Screenshot](./screenshots/Fake_image_analysis.jpeg), [View Real image analysis Screenshot](./screenshots/Real_image_analysis.jpeg)
 
 
 - **🔗 Product Link Analysis:**  
@@ -45,7 +46,7 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
   - Extracts reviews, checks seller credibility, and provides a comprehensive trust score.
   - Gives clear risk level, recommendations, and highlights issues.
   - Handles unsupported sites (e.g., with CAPTCHA) gracefully, informing users and suggesting alternatives.
-  - Verify: ![Product Link Analysis](./screenshots/Product_link_analysis.jpeg)
+  - Verify: [View Product link analysis Screenshot](./screenshots/Product_link_analysis.jpeg)
 
 - **🏷️ Product Name Context:**  
   - Product name is used as context to improve the accuracy of review and image analysis.
@@ -55,8 +56,7 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
   - Detects inflated, fair, or bargain prices.
   - Suggests alternate products within your budget.
   - Provides direct links to retailer websites for easy verification and purchase.
-  - Verify: ![Price Comparison](./screenshots/Price_comparison.jpeg)
-            ![Alternate Price](./screenshots/Alternate_price.jpeg)
+  - Verify : [View Price Comparison Screenshot](./screenshots/Price_comparison.jpeg), [View Alternate Price Screenshot](./screenshots/Alternate_price.jpeg)
 
 - **📊 Analytics & User History:**  
   - Logged-in users can view their analysis history.
@@ -145,6 +145,10 @@ Demo Video: https://youtu.be/3t3K_N9F_0A
 - **Show analytics dashboard and mobile responsiveness.**
 
 ---
+
+> ⚠️ **Note**: If the backend is not running, please click the link below to wake it up (Render free tier may cause it to sleep after inactivity):
+
+  🔁 [Refresh Backend Server](https://trustbuddy-backend.onrender.com/)
 
 ## ⚠️ Limitations
 
