@@ -46,6 +46,7 @@ export function TrustChecker() {
   const [voiceResult, setVoiceResult] = useState(null);
   const [voiceError, setVoiceError] = useState(null);
   const recognitionRef = useRef(null);
+  const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false);
 
   const [username, setUsername] = useState(null);
   const [history, setHistory] = useState([]);
@@ -349,6 +350,7 @@ export function TrustChecker() {
       setVoiceError('Please speak or enter something to analyze');
       return;
     }
+    setIsAnalyzingVoice(true);
     setVoiceError(null);
     setVoiceResult(null);
     try {
@@ -360,6 +362,7 @@ export function TrustChecker() {
       if (!res.ok) {
         const data = await res.json();
         setVoiceError(data.detail || 'Analysis failed');
+        setIsAnalyzingVoice(false);
         return;
       }
       const result = await res.json();
@@ -371,6 +374,7 @@ export function TrustChecker() {
     } catch (err) {
       setVoiceError('Network error');
     }
+    setIsAnalyzingVoice(false);
   };
 
   // --- Tab Definitions ---
@@ -539,13 +543,13 @@ export function TrustChecker() {
           </div>
           <button
             onClick={handleAnalyzeVoice}
-            disabled={!voiceText.trim() || isVoiceActive}
+            disabled={!voiceText.trim() || isVoiceActive || isAnalyzingVoice}
             className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg mt-2
-              ${(!voiceText.trim() || isVoiceActive)
+              ${(!voiceText.trim() || isVoiceActive || isAnalyzingVoice)
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 hover:scale-105'}`}
           >
-            {t('analyzeVoiceInput', language)}
+            {isAnalyzingVoice ? t('analyzeVoiceInput', language) + '...' : t('analyzeVoiceInput', language)}
           </button>
           {voiceError && <div className="mt-4 text-red-600 font-medium">{voiceError}</div>}
           {voiceResult && (
