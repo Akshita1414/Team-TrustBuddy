@@ -93,11 +93,31 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
   - Shows both real and fake review examples for demo and education.
   - Verify: [View Fake review analysis Screenshot](./screenshots/Fake_review_analysis.jpeg), [View Real review analysis Screenshot](./screenshots/Genuine_Reviews_analysis.jpeg)
 
+  Sample Reviews for Testing
+Use these sample reviews to test the Review Analysis feature of TrustBuddy. Paste them into the input box and observe how the model distinguishes between genuine and fake reviews based on language patterns, exaggeration, and sentiment.
+
+🟢 Genuine Review:
+“I’ve been using this wireless mouse for about three weeks now. The battery life is impressive, and it feels comfortable during long work sessions. The only downside is that the scroll wheel is a bit stiff. Overall, it’s a good value for the price.”
+
+🔴 Fake Review:
+“This product is absolutely AMAZING!!! I’ve never seen anything like it before. Five stars all the way ⭐⭐⭐⭐⭐. Works PERFECTLY just as described. BUY NOW!!! Don’t miss this incredible deal! Changed my life!! I would recommend it to everyone in the world!!!”
+
+🟢 Genuine Review:
+“The bottle is sturdy and leak-proof. I’ve been carrying it to the gym every day, and it keeps my water cold for hours. Would definitely recommend to anyone looking for a reliable water bottle.”
+
+🔴 Fake Review:
+“OMG BEST BOTTLE EVERRR!!! Kept my drink cold for 3 days!! I’m shocked. I bought 5 more for my entire family!! Everyone should get this miracle bottle right now!!! 🔥🔥🔥🔥🔥”
+
+
 - **🖼️ Image Verification:**  
   - Detects AI-generated or manipulated product images.
   - Flags suspicious images and confirms authentic ones.
   - Shows both real and fake image examples.
   - Verify: [View Fake image analysis Screenshot](./screenshots/Fake_image_analysis.jpeg), [View Real image analysis Screenshot](./screenshots/Real_image_analysis.jpeg)
+
+  Sample Images for testing
+  [View real image for testing](./screenshots/Real%20bottle.jpeg)
+  [View ai generated image for testing](./screenshots//ai-generated-7971506_1280.jpg)
 
 - **🔗 Product Link Analysis:**  
   - Paste any product URL to analyze the entire product page.
@@ -105,6 +125,7 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
   - Gives clear risk level, recommendations, and highlights issues.
   - Handles unsupported sites (e.g., with CAPTCHA) gracefully, informing users and suggesting alternatives.
   - Verify: [View Product link analysis Screenshot](./screenshots/Product_link_analysis.jpeg)
+  - Example Link for testing: https://www.justbake.in/1-premium-black-forest-500g-cake
 
 - **🏷️ Product Name Context:**  
   - Product name is used as context to improve the accuracy of review and image analysis.
@@ -115,6 +136,7 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
   - Suggests alternate products within your budget.
   - Provides direct links to retailer websites for easy verification and purchase.
   - Verify: [View Price Comparison Screenshot](./screenshots/Price_comparison.jpeg), [View Alternate Price Screenshot](./screenshots/Alternate_price.jpeg)
+  Example query: Meesho kurtis, Amazon shoes
 
 - **📊 Analytics & User History:**  
   - Logged-in users can view their analysis history.
@@ -185,6 +207,7 @@ npm start
 1. **Sign up or log in.**
 2. **Select your preferred language.**
 3. **Choose a feature tab:**
+   - Product Name Context
    - Review Analysis
    - Image Verification
    - Product Link Analysis
