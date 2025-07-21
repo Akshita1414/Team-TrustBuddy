@@ -646,60 +646,45 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
         # Fallbacks if Gemini fails
         if not title:
             title = soup.title.string.strip() if soup.title and soup.title.string else ""
-        # If Gemini or manual fallback did not extract reviews, try undetected-chromedriver-based review extraction
-        if not reviews or not any(reviews):
-            try:
-                try:
-                    import undetected_chromedriver as uc
-                    chrome_options = uc.ChromeOptions()
-                    chrome_options.add_argument('--headless')
-                    chrome_options.add_argument('--no-sandbox')
-                    chrome_options.add_argument('--disable-dev-shm-usage')
-                    chrome_options.add_argument('--disable-gpu')
-                    chrome_options.add_argument('--window-size=1920,1080')
-                    chrome_options.add_argument(f'user-agent={headers["User-Agent"]}')
-                    driver = uc.Chrome(options=chrome_options)
-                except ImportError:
-                    from selenium import webdriver
-                    from selenium.webdriver.chrome.options import Options
-                    chrome_options = Options()
-                    chrome_options.add_argument('--headless')
-                    chrome_options.add_argument('--no-sandbox')
-                    chrome_options.add_argument('--disable-dev-shm-usage')
-                    chrome_options.add_argument('--disable-gpu')
-                    chrome_options.add_argument('--window-size=1920,1080')
-                    chrome_options.add_argument(f'user-agent={headers["User-Agent"]}')
-                    driver = webdriver.Chrome(options=chrome_options)
-                driver.get(product_url)
-                import time
-                time.sleep(7)  # Wait longer for JS and anti-bot checks
-                page_source = driver.page_source
-                driver.quit()
-                soup2 = BeautifulSoup(page_source, "html.parser")
-                reviews = []
-                # Try common review selectors
-                for tag in ["div", "p", "span"]:
-                    for el in soup2.find_all(tag):
-                        class_attr = el.get("class")
-                        data_testid = el.get("data-testid")
-                        if (class_attr and any("review" in c.lower() for c in class_attr)) or (data_testid and "review" in data_testid.lower()):
-                            text = el.get_text(strip=True)
-                            if text and text not in reviews:
-                                reviews.append(text)
-                        if len(reviews) >= 5:
-                            break
-                    if len(reviews) >= 5:
-                        break
-                if not reviews:
-                    reviews = ["No reviews found."]
-            except Exception as e:
-                reviews = ["No reviews found."]
+        # --- Improved Image Extraction ---
+        from urllib.parse import urljoin
         if not img_url:
             main_img = soup.find("img")
             if main_img and isinstance(main_img, bs4.element.Tag):
                 src = main_img.get("src")
                 if isinstance(src, str):
                     img_url = src
+        # If img_url is relative, convert to absolute
+        if img_url and isinstance(img_url, str) and not img_url.startswith("http"):
+            img_url = urljoin(product_url, img_url)
+        # --- Improved Review Extraction ---
+        if not reviews or not any(reviews):
+            reviews = []
+            # Try common review selectors and <li> tags
+            for tag in ["div", "p", "span", "li"]:
+                for el in soup.find_all(tag):
+                    class_attr = el.get("class")
+                    data_testid = el.get("data-testid")
+                    id_attr = el.get("id")
+                    # Look for review-like keywords
+                    review_keywords = ["review", "comment", "testimonial"]
+                    found = False
+                    if class_attr and any(any(kw in c.lower() for kw in review_keywords) for c in class_attr):
+                        found = True
+                    if data_testid and any(kw in data_testid.lower() for kw in review_keywords):
+                        found = True
+                    if id_attr and any(kw in id_attr.lower() for kw in review_keywords):
+                        found = True
+                    if found:
+                        text = el.get_text(strip=True)
+                        if text and text not in reviews and len(text) > 10:
+                            reviews.append(text)
+                    if len(reviews) >= 5:
+                        break
+                if len(reviews) >= 5:
+                    break
+            if not reviews:
+                reviews = ["No reviews found."]
         # Extract description
         desc = ""
         desc_tag = soup.find("meta", attrs={"name": "description"})
@@ -710,98 +695,50 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
         # Analyze product image with Gradio client
         image_analysis = None
         if img_url and isinstance(img_url, str):
-            # Skip image analysis for problematic domains or URLs
-            problematic_domains = ['fnp.com', 'm-i1.fnp.com', 'cdn.fnp.com']
-            if any(domain in img_url.lower() for domain in problematic_domains):
-                image_analysis = {
-                    "label": "SKIPPED",
-                    "confidence": 0.5,
-                    "reason": "Image analysis skipped due to known server issues. Proceeding with text-based analysis only."
-                }
-            else:
-                try:
-                    # Add better error handling for image fetching
-                    img_resp = pyrequests.get(img_url, headers=headers, timeout=15)
-                    if img_resp.status_code == 200:
-                        # Save the image to a temporary file
-                        import tempfile
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-                            tmp.write(img_resp.content)
-                            tmp_path = tmp.name
-                        
-                        # Use gradio_client to call your Space
-                        print(f"DEBUG: Calling Akshita1414/Image_Hugging_Face Space")
-                        client = Client("Akshita1414/Image_Hugging_Face")
-                        result = client.predict(
-                            img=handle_file(tmp_path),
-                            api_name="/predict"
-                        )
-                        print(f"DEBUG: Space result: {result}")
-                        
-                        # Clean up the temp file
-                        import os
-                        os.remove(tmp_path)
-                        
-                        # Process the result from your Space
-                        if isinstance(result, dict):
-                            # Handle the new response format from Akshita1414/Image_Hugging_Face
-                            if "is_ai_generated" in result:
-                                is_ai_generated = result.get("is_ai_generated", False)
-                                confidence = float(result.get("confidence", 0.0))
-                                
-                                if is_ai_generated:
-                                    final_label = "AI-GENERATED"
-                                    # Ensure confidence is properly set
-                                    if confidence == 0.0:
-                                        confidence = 0.35
-                                else:
-                                    final_label = "AUTHENTIC"
-                                    # Ensure confidence is properly set
-                                    if confidence == 0.0:
-                                        confidence = 0.85
-                                
-                                image_analysis = {
-                                    "label": final_label,
-                                    "confidence": confidence,
-                                    "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
-                                }
+            try:
+                # Add better error handling for image fetching
+                img_resp = pyrequests.get(img_url, headers=headers, timeout=15)
+                if img_resp.status_code == 200:
+                    # Save the image to a temporary file
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                        tmp.write(img_resp.content)
+                        tmp_path = tmp.name
+                    # Use gradio_client to call your Space
+                    print(f"DEBUG: Calling Akshita1414/Image_Hugging_Face Space")
+                    client = Client("Akshita1414/Image_Hugging_Face")
+                    result = client.predict(
+                        img=handle_file(tmp_path),
+                        api_name="/predict"
+                    )
+                    print(f"DEBUG: Space result: {result}")
+                    # Clean up the temp file
+                    import os
+                    os.remove(tmp_path)
+                    # Process the result from your Space
+                    if isinstance(result, dict):
+                        # Handle the new response format from Akshita1414/Image_Hugging_Face
+                        if "is_ai_generated" in result:
+                            is_ai_generated = result.get("is_ai_generated", False)
+                            confidence = float(result.get("confidence", 0.0))
+                            if is_ai_generated:
+                                final_label = "AI-GENERATED"
+                                if confidence == 0.0:
+                                    confidence = 0.35
                             else:
-                                # Handle old response format
-                                label = result.get("label", "UNKNOWN")
-                                confidence = float(result.get("confidence", 0.0))
-                                
-                                # Clean and standardize the label
-                                label_upper = label.upper()
-                                
-                                # Handle mixed or unclear results
-                                if "AI" in label_upper or "GENERATED" in label_upper or "FAKE" in label_upper:
-                                    final_label = "AI-GENERATED"
-                                    if confidence == 0.0:
-                                        confidence = 0.35
-                                elif "REAL" in label_upper or "AUTHENTIC" in label_upper or "ORIGINAL" in label_upper or "GENUINE" in label_upper:
-                                    final_label = "AUTHENTIC"
-                                    if confidence == 0.0:
-                                        confidence = 0.85
-                                else:
-                                    # For unclear results, default to manual review
-                                    final_label = "UNCLEAR"
-                                    confidence = 0.5
-                                
-                                image_analysis = {
-                                    "label": final_label,
-                                    "confidence": confidence,
-                                    "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
-                                }
-                        elif isinstance(result, list) and len(result) > 0:
-                            # Handle list response format
-                            best = max(result, key=lambda r: r.get('score', 0) if isinstance(r, dict) else 0)
-                            label = best.get("label", "UNKNOWN")
-                            confidence = float(best.get("score", 0.0))
-                            
-                            # Clean and standardize the label
+                                final_label = "AUTHENTIC"
+                                if confidence == 0.0:
+                                    confidence = 0.85
+                            image_analysis = {
+                                "label": final_label,
+                                "confidence": confidence,
+                                "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
+                            }
+                        else:
+                            # Handle old response format
+                            label = result.get("label", "UNKNOWN")
+                            confidence = float(result.get("confidence", 0.0))
                             label_upper = label.upper()
-                            
-                            # Handle mixed or unclear results
                             if "AI" in label_upper or "GENERATED" in label_upper or "FAKE" in label_upper:
                                 final_label = "AI-GENERATED"
                                 if confidence == 0.0:
@@ -811,31 +748,49 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                                 if confidence == 0.0:
                                     confidence = 0.85
                             else:
-                                # For unclear results, default to manual review
                                 final_label = "UNCLEAR"
                                 confidence = 0.5
-                            
                             image_analysis = {
                                 "label": final_label,
                                 "confidence": confidence,
                                 "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
                             }
+                    elif isinstance(result, list) and len(result) > 0:
+                        best = max(result, key=lambda r: r.get('score', 0) if isinstance(r, dict) else 0)
+                        label = best.get("label", "UNKNOWN")
+                        confidence = float(best.get("score", 0.0))
+                        label_upper = label.upper()
+                        if "AI" in label_upper or "GENERATED" in label_upper or "FAKE" in label_upper:
+                            final_label = "AI-GENERATED"
+                            if confidence == 0.0:
+                                confidence = 0.35
+                        elif "REAL" in label_upper or "AUTHENTIC" in label_upper or "ORIGINAL" in label_upper or "GENUINE" in label_upper:
+                            final_label = "AUTHENTIC"
+                            if confidence == 0.0:
+                                confidence = 0.85
                         else:
-                            image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
+                            final_label = "UNCLEAR"
+                            confidence = 0.5
+                        image_analysis = {
+                            "label": final_label,
+                            "confidence": confidence,
+                            "reason": f"Image analysis result: {final_label} with confidence {round(confidence * 100, 1)}%"
+                        }
                     else:
-                        image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
-                except Exception as e:
-                    print(f"DEBUG: Image analysis exception: {str(e)}")
-                    # Provide a more user-friendly error message
-                    error_msg = str(e)
-                    if "NameResolutionError" in error_msg or "getaddrinfo failed" in error_msg:
-                        image_analysis = {"error": "Image analysis failed: Unable to reach image server. The image URL may be invalid or the server is down.", "confidence": 0.0}
-                    elif "timeout" in error_msg.lower():
-                        image_analysis = {"error": "Image analysis failed: Request timed out. The image server is taking too long to respond.", "confidence": 0.0}
-                    elif "connection" in error_msg.lower():
-                        image_analysis = {"error": "Image analysis failed: Network connection error. Please check your internet connection.", "confidence": 0.0}
-                    else:
-                        image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
+                        image_analysis = {"error": "Unexpected response format from Space", "raw_response": result, "confidence": 0.0}
+                else:
+                    image_analysis = {"error": f"Failed to download image: HTTP {img_resp.status_code}", "confidence": 0.0}
+            except Exception as e:
+                print(f"DEBUG: Image analysis exception: {str(e)}")
+                error_msg = str(e)
+                if "NameResolutionError" in error_msg or "getaddrinfo failed" in error_msg:
+                    image_analysis = {"error": "Image analysis failed: Unable to reach image server. The image URL may be invalid or the server is down.", "confidence": 0.0}
+                elif "timeout" in error_msg.lower():
+                    image_analysis = {"error": "Image analysis failed: Request timed out. The image server is taking too long to respond.", "confidence": 0.0}
+                elif "connection" in error_msg.lower():
+                    image_analysis = {"error": "Image analysis failed: Network connection error. Please check your internet connection.", "confidence": 0.0}
+                else:
+                    image_analysis = {"error": f"Image analysis failed: {str(e)}", "confidence": 0.0}
         # If image_analysis is still None, ensure it is a dict with confidence 0.0
         if image_analysis is None:
             image_analysis = {"label": None, "confidence": 0.0, "reason": "No image analysis performed."}
@@ -877,6 +832,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
         print("Summary result:", summary)
         # --- Review Confidence Analysis ---
         review_confidence = None
+        review_confidence_scores = []
         if reviews and isinstance(reviews, list):
             review_scores = []
             for rv in reviews[:3]:  # Limit to 3 reviews for speed
@@ -888,6 +844,7 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
                     continue
             if review_scores:
                 review_confidence = sum(review_scores) / len(review_scores)
+                review_confidence_scores = review_scores
         # --- Image Confidence ---
         image_confidence = None
         if image_analysis and isinstance(image_analysis, dict):
@@ -902,12 +859,49 @@ async def analyze_product_link(request: Request, username: Optional[str] = None)
             final_confidence_score = review_confidence
         elif image_confidence is not None:
             final_confidence_score = image_confidence
+        # --- Updated Recommendation Logic ---
+        summary = None
+        try:
+            has_reviews = reviews and len(reviews) > 0 and any(review.strip() for review in reviews if review)
+            image_label = image_analysis.get('label', '').upper() if isinstance(image_analysis, dict) else ''
+            if image_label == 'AI-GENERATED':
+                summary = {
+                    "recommendation": "Manual Review",
+                    "reason": "Product image appears AI-generated. Please review carefully before purchasing."
+                }
+            elif has_reviews and image_confidence and image_confidence > 0.5:
+                summary = {
+                    "recommendation": "Buy",
+                    "reason": "Product has positive reviews and authentic images. Consider purchasing."
+                }
+            elif has_reviews:
+                summary = {
+                    "recommendation": "Consider",
+                    "reason": "Product has reviews but image analysis is limited. Proceed with caution."
+                }
+            elif image_confidence and image_confidence > 0.7:
+                summary = {
+                    "recommendation": "Buy",
+                    "reason": "Product images appear authentic. Consider purchasing."
+                }
+            else:
+                summary = {
+                    "recommendation": "Manual Review",
+                    "reason": "Limited data available. Please manually review the product before purchasing."
+                }
+        except Exception as e:
+            summary = {
+                "recommendation": "Manual Review",
+                "reason": "Analysis incomplete. Please manually review the product."
+            }
         # ---
         response_data = {
             "product_title": title,
             "product_description": desc,
             "product_image_url": img_url,
             "reviews": reviews,
+            "review_confidence_score": review_confidence,  # NEW: average review confidence
+            "review_confidence_scores": review_confidence_scores,  # NEW: per-review confidence
             "image_analysis": image_analysis,
             "summary": summary,
             "final_confidence_score": final_confidence_score
