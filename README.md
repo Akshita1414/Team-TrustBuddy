@@ -123,7 +123,9 @@ Use these sample reviews to test the Review Analysis feature of TrustBuddy. Past
   - Paste any product URL to analyze the entire product page.
   - Extracts reviews, checks seller credibility, and provides a comprehensive trust score.
   - Gives clear risk level, recommendations, and highlights issues.
-  - Handles unsupported sites (e.g., with CAPTCHA) gracefully, informing users and suggesting alternatives.
+  -Sites with CAPTCHA or strong anti-bot protection (e.g., Amazon, Flipkart, Meesho) are not currently supported for automated analysis. The app will    notify users and recommend manual review.
+> We plan to add support for more sites and advanced analysis in future updates.
+
   - Verify: [View Product link analysis Screenshot](./screenshots/Product_link_analysis.jpeg)
   - Example Link for testing: https://www.justbake.in/1-premium-black-forest-500g-cake
 
