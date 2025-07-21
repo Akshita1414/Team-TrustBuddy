@@ -11,6 +11,67 @@ TrustBuddy is a full-stack hackathon prototype designed to empower Indian consum
 
 ---
 
+## Open source attributions
+- **Backend(Python/FastAPI)**
+  
+| **Name & Version**  | **License** | **Role in Build**                             | **Source Link**                                          |
+| ------------------- | ----------- | --------------------------------------------- | -------------------------------------------------------- |
+| FastAPI 0.116.1     | MIT         | Backend web framework (API server)            | [GitHub](https://github.com/tiangolo/fastapi)            |
+| Uvicorn 0.35.0      | BSD         | ASGI server for FastAPI                       | [GitHub](https://github.com/encode/uvicorn)              |
+| Requests 2.32.4     | Apache 2.0  | HTTP client for Tavily API and others         | [GitHub](https://github.com/psf/requests)                |
+| Pymongo 4.13.2      | Apache 2.0  | MongoDB client for user/history storage       | [GitHub](https://github.com/mongodb/mongo-python-driver) |
+| python-dotenv 1.1.1 | BSD         | Loads environment variables                   | [GitHub](https://github.com/theskumar/python-dotenv)     |
+| Pydantic 2.11.7     | MIT         | Data validation and settings management       | [GitHub](https://github.com/pydantic/pydantic)           |
+| Pillow 11.3.0       | HPND        | Image processing (for image verification)     | [GitHub](https://github.com/python-pillow/Pillow)        |
+| NLTK 3.9.1          | Apache 2.0  | Natural language processing (review analysis) | [GitHub](https://github.com/nltk/nltk)                   |
+| TextBlob 0.19.0     | MIT         | Text processing and sentiment analysis        | [GitHub](https://github.com/sloria/TextBlob)             |
+| NumPy 2.3.1                   | BSD         | Numerical operations                         | [GitHub](https://github.com/numpy/numpy)                                |
+| gradio\_client                | Apache 2.0  | Calls Hugging Face Spaces for image analysis | [GitHub](https://github.com/gradio-app/gradio)                          |
+| Selenium 4.34.2               | Apache 2.0  | Web scraping fallback for JS-heavy sites     | [GitHub](https://github.com/SeleniumHQ/selenium)                        |
+| BeautifulSoup4 4.13.4         | MIT         | HTML parsing for scraping                    | [GitHub](https://github.com/BeautifulSoup/beautifulsoup4)               |
+| HTTPX 0.27.0                  | MIT         | Async HTTP client                            | [GitHub](https://github.com/encode/httpx)                               |
+| undetected-chromedriver 3.5.5 | GPL v3      | Anti-detection web scraping                  | [GitHub](https://github.com/ultrafunkamsterdam/undetected-chromedriver) |
+
+- **Frontend(React/ Javascript)**
+  
+| **Name & Version**      | **License** | **Role in Build**                   | **Source Link**                                           |
+| ----------------------- | ----------- | ----------------------------------- | --------------------------------------------------------- |
+| React 19.1.0            | MIT         | Main frontend framework             | [GitHub](https://github.com/facebook/react)               |
+| React DOM 19.1.0        | MIT         | React DOM rendering                 | [GitHub](https://github.com/facebook/react)               |
+| Tailwind CSS 3.4.17     | MIT         | Utility-first CSS framework         | [GitHub](https://github.com/tailwindlabs/tailwindcss)     |
+| Chart.js 4.5.0          | MIT         | Data visualization (charts, graphs) | [GitHub](https://github.com/chartjs/Chart.js)             |
+| react-chartjs-2 5.3.0   | MIT         | React wrapper for Chart.js          | [GitHub](https://github.com/reactchartjs/react-chartjs-2) |
+| lucide-react 0.525.0    | ISC         | Icon library                        | [GitHub](https://github.com/lucide-icons/lucide)          |
+| react-router-dom 6.30.1 | MIT         | Routing/navigation                  | [GitHub](https://github.com/remix-run/react-router)       |
+| i18next 25.3.2                     | MIT         | Internationalization framework | [GitHub](https://github.com/i18next/i18next)                       |
+| react-i18next 15.6.0               | MIT         | React integration for i18next  | [GitHub](https://github.com/i18next/react-i18next)                 |
+| chartjs-plugin-datalabels 2.2.0    | MIT         | Chart.js data labels plugin    | [GitHub](https://github.com/chartjs/chartjs-plugin-datalabels)     |
+| react-scripts 5.0.1                | MIT         | Create React App scripts       | [GitHub](https://github.com/facebook/create-react-app)             |
+| @testing-library/react 16.3.0      | MIT         | React testing utilities        | [GitHub](https://github.com/testing-library/react-testing-library) |
+| @testing-library/jest-dom 6.6.3    | MIT         | Custom Jest matchers           | [GitHub](https://github.com/testing-library/jest-dom)              |
+| @testing-library/user-event 13.5.0 | MIT         | User event simulation          | [GitHub](https://github.com/testing-library/user-event)            |
+| @testing-library/dom 10.4.0        | MIT         | DOM testing utilities          | [GitHub](https://github.com/testing-library/dom-testing-library)   |
+| web-vitals 2.1.4                   | Apache 2.0  | Web performance metrics        | [GitHub](https://github.com/GoogleChrome/web-vitals)               |
+
+-- **External APIs/Services**
+
+| **Name & Version**  | **License** | **Role in Build**                                 | **Source Link**                                            |
+| ------------------- | ----------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| Tavily Search API   | Commercial  | Price insights, alternate product recommendations | [Tavily](https://tavily.com/)                              |
+| Hugging Face Spaces | Apache 2.0  | AI image authenticity detection                   | [Hugging Face](https://huggingface.co/)                    |
+| Google Gemini API   | Commercial  | Product info extraction from HTML               | [Google Gemini](https://ai.google.dev/)                    |
+| LibreTranslate      | AGPL v3     | Translation for multilingual support              | [GitHub](https://github.com/LibreTranslate/LibreTranslate) |
+
+- **Development Tools**
+
+| **Name & Version** | **License** | **Role in Build**         | **Source Link**                                        |
+| ------------------ | ----------- | ------------------------- | ------------------------------------------------------ |
+| ESLint             | MIT         | JavaScript linting        | [GitHub](https://github.com/eslint/eslint)             |
+| Create React App   | MIT         | React project scaffolding | [GitHub](https://github.com/facebook/create-react-app) |
+| Webpack            | MIT         | Module bundler            | [GitHub](https://github.com/webpack/webpack)           |
+| Babel              | MIT         | JavaScript compiler       | [GitHub](https://github.com/babel/babel)               |
+
+
 ## ✨ Features
 
 - **🔐 User Authentication:**  
@@ -137,11 +198,7 @@ npm start
 
 ## 🎥 Demo
 
-- **Showcase real and fake review/image analysis.**
-- **Demonstrate product link analysis, including unsupported site handling.**
-- **Highlight price comparison with direct retailer links.**
-- **Switch languages and use voice input.**
-- **Show analytics dashboard and mobile responsiveness.**
+Demo Video: https://youtu.be/3t3K_N9F_0A
 
 ---
 
@@ -149,7 +206,7 @@ npm start
 
 - Product link analysis may not work on sites with strict anti-bot/CAPTCHA protection (user is informed gracefully).
 - AI models are optimized for Indian e-commerce but may have edge cases.
-- Prototype: Not production-ready; some features may be rate-limited or use free-tier APIs.
+- Prototype: Some features may be rate-limited or use free-tier APIs.
 
 ---
 

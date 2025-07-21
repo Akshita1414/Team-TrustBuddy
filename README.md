@@ -137,6 +137,10 @@ npm start
 
 ## 🎥 Demo
 
+<<<<<<< HEAD
+=======
+Demo Video: https://youtu.be/3t3K_N9F_0A
+>>>>>>> c9d33089da5c34ea8dbc83d1a750bab5abc46040
 
 ---
 
@@ -144,7 +148,7 @@ npm start
 
 - Product link analysis may not work on sites with strict anti-bot/CAPTCHA protection (user is informed gracefully).
 - AI models are optimized for Indian e-commerce but may have edge cases.
-- Prototype: Not production-ready; some features may be rate-limited or use free-tier APIs.
+- Prototype: Some features may be rate-limited or use free-tier APIs.
 
 ---
 
