@@ -137,11 +137,7 @@ npm start
 
 ## 🎥 Demo
 
-- **Showcase real and fake review/image analysis.**
-- **Demonstrate product link analysis, including unsupported site handling.**
-- **Highlight price comparison with direct retailer links.**
-- **Switch languages and use voice input.**
-- **Show analytics dashboard and mobile responsiveness.**
+Demo Video: https://youtu.be/3t3K_N9F_0A
 
 ---
 
@@ -149,7 +145,7 @@ npm start
 
 - Product link analysis may not work on sites with strict anti-bot/CAPTCHA protection (user is informed gracefully).
 - AI models are optimized for Indian e-commerce but may have edge cases.
-- Prototype: Not production-ready; some features may be rate-limited or use free-tier APIs.
+- Prototype: Some features may be rate-limited or use free-tier APIs.
 
 ---
 
