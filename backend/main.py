@@ -17,6 +17,10 @@ from dotenv import load_dotenv
 from gradio_client import Client, handle_file
 import httpx
 
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+from fastapi import Header
+
 load_dotenv()
 
 # Gemini API configuration
@@ -29,6 +33,23 @@ if GEMINI_API_KEY:
     print(f"DEBUG: GEMINI_API_KEY starts with: {GEMINI_API_KEY[:10]}...")
 else:
     print("DEBUG: Please set GEMINI_API_KEY in your .env file")
+
+SECRET_KEY = "your_secret_key"  # Use a strong, random key in production!
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
+
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
 
 async def translate_with_gemini(text: str, target_language: str, product_name: str) -> str:
     """Translate text using Gemini API"""
@@ -240,6 +261,15 @@ client = MongoClient(MONGO_URL)
 db = client["trustbuddy"]
 users_collection = db["users"]
 
+def get_current_user(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.split(" ")[1]
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Token expired or invalid. Please sign in again.")
+    return payload["sub"]
+
 # Initialize FastAPI app
 app = FastAPI(
     title="TrustBuddy - Fake Review Detection API",
@@ -269,7 +299,7 @@ def get_user(username: str):
     return users_collection.find_one({"username": username})
 
 @app.get("/user/history")
-def get_history(username: str):
+def get_history(username: str, current_user: str = Depends(get_current_user)):
     user = get_user(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -982,7 +1012,9 @@ def login(user: UserLogin):
     db_user = users_collection.find_one({"username": user.username, "password": user.password})
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
-    return {"message": "Login successful.", "username": user.username}
+    # Create JWT token
+    access_token = create_access_token({"sub": user.username})
+    return {"message": "Login successful.", "username": user.username, "access_token": access_token}
 
 @app.post("/compare-prices")
 async def compare_prices(payload: dict = Body(...)):

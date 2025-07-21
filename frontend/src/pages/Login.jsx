@@ -17,12 +17,15 @@ const Login = ({ onLogin }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         setError(data.detail || 'Login failed');
         return;
       }
       localStorage.setItem('username', username);
+      if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+      }
       if (onLogin) onLogin(username);
       window.location.href = '/';
     } catch (err) {

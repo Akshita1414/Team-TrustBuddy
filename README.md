@@ -137,11 +137,6 @@ npm start
 
 ## 🎥 Demo
 
-- **Showcase real and fake review/image analysis.**
-- **Demonstrate product link analysis, including unsupported site handling.**
-- **Highlight price comparison with direct retailer links.**
-- **Switch languages and use voice input.**
-- **Show analytics dashboard and mobile responsiveness.**
 
 ---
 

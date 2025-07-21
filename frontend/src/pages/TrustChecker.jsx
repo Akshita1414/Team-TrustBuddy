@@ -10,7 +10,6 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { API_CONFIG } from '../config';
 import { translations } from '../data/translations';
 import PriceComparisonTab from './PriceComparisonTab';
-import { speak, getVoiceLanguage } from '../utils/voice';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
 function t(key, lang = 'en') {
@@ -50,14 +49,29 @@ export function TrustChecker() {
 
   const [username, setUsername] = useState(null);
   const [history, setHistory] = useState([]);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem('username');
     setUsername(user);
     if (user) {
-      fetch(`${API_CONFIG.BASE_URL}/user/history?username=${user}`)
-        .then(res => res.json())
-        .then(data => setHistory(data.history || []));
+      const token = localStorage.getItem('access_token');
+      fetch(`${API_CONFIG.BASE_URL}/user/history?username=${user}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+        .then(res => {
+          if (res.status === 401) {
+            setSessionExpired(true);
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 2000);
+            return null;
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.history) setHistory(data.history);
+        });
     }
   }, []);
 
@@ -550,7 +564,12 @@ export function TrustChecker() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+      {sessionExpired && (
+        <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded relative text-center z-50">
+          Session expired. Please log in again.
+        </div>
+      )}
       <Header
         title="TrustBuddy Checker"
         showBackButton={true}
