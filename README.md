@@ -221,12 +221,6 @@ npm start
 
 ---
 
-## 🎥 Demo
-
-Demo Video: https://youtu.be/3t3K_N9F_0A
-
----
-
 ## ⚠️ Limitations
 
 - Product link analysis may not work on sites with strict anti-bot/CAPTCHA protection (user is informed gracefully).
@@ -255,7 +249,7 @@ Please open an issue to discuss your ideas or report bugs.
 ## 👥 Team
 
 - TeameName : Team TrustIQ
-- Akshita Chauhan
+- Akshita Chauhan, Chahat Garg
 
 ---
 
@@ -268,7 +262,7 @@ MIT License
 ## 📬 Contact
 
 For questions, feedback, or partnership inquiries:  
-**Email:** aakshita_be22@thapar.edu
+**Email:** aakshita_be22@thapar.edu, cgarg_be22@thapar.edu
 **GitHub:** [github.com/Akshita1414/Team-TrustBuddy](https://github.com/Akshita1414/Team-TrustBuddy)
 
 ---
